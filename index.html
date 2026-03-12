@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description"
+        content="Dangerous Boys — Komunitas persahabatan dari Banjar City, Jawa Barat. Dokumentasi perjalanan, party, dan cerita bersama." />
+    <title>Dangerous Boys — Banjar City</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/animation.css" />
+</head>
+
+<body>
+
+    <!-- NAVBAR (di-inject oleh components/navbar.js) -->
+    <div id="navbar-root"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       HERO
+  ════════════════════════════════════════════════════════════ -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-grid"></div>
+
+        <!-- Floating photo frames (isi dengan foto asli jika ada) -->
+        <div class="hero-photos" aria-hidden="true">
+            <div class="hero-photo hp1">
+                <img src="assets/images/wisudasmk1.jpeg" alt="" />
+                <div class="ph">Photo 1</div>
+            </div>
+            <div class="hero-photo hp2">
+                <img src="assets/images/homeajay.jpeg" alt="" />
+                <div class="ph">Photo 2</div>
+            </div>
+            <div class="hero-photo hp3">
+                <img src="assets/images/socer.jpeg" alt="" />
+                <div class="ph">Photo 3</div>
+            </div>
+        </div>
+
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+            <p class="hero-eyebrow">Banjar City, Jawa Barat &nbsp;·&nbsp; Berdiri 2018</p>
+            <h1 class="hero-title">
+                Dangerous<br>
+                <em>Boys</em>
+            </h1>
+            <p class="hero-sub">
+                Persahabatan yang lahir dari lorong-lorong SMKN 2 Banjar,
+                tumbuh di jalanan kota ini, dan hidup dalam setiap cerita
+                yang kita tuliskan bersama.
+            </p>
+        </div>
+
+        <div class="hero-scroll" aria-hidden="true">
+            <span>Scroll</span>
+            <div class="scroll-line"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       ABOUT
+  ════════════════════════════════════════════════════════════ -->
+    <section id="about">
+        <div class="container">
+            <div class="about-inner">
+
+                <!-- Text — kiri -->
+                <div class="about-text reveal-left">
+                    <p class="section-eyebrow">Tentang Kami</p>
+                    <h2 class="section-title" style="margin-bottom: 32px">
+                        The Story of<br>
+                        <em>Dangerous Boys</em>
+                    </h2>
+                    <p class="lead">
+                        Dangerous Boys bukan sekadar nama. Ia adalah ikrar persahabatan yang lahir
+                        dari bangku-bangku SMKN 2 Banjar — dari tatapan nakal di koridor, dari tawa
+                        yang meledak di kantin, dari mimpi yang ditulis bersama.
+                    </p>
+                    <p>
+                        Dimulai pada 2018, sekelompok pemuda dari berbagai jurusan menemukan satu
+                        kesamaan: keberanian untuk hidup dengan caranya sendiri. Mereka tak sekadar
+                        berteman — mereka membangun keluarga kedua.
+                    </p>
+                    <p>
+                        Dari lorong SMKN 2, persahabatan ini meluas ke sekolah-sekolah lain di
+                        Banjar City — menjalin aliansi dengan jiwa-jiwa yang punya semangat serupa.
+                        Kini, bertahun-tahun kemudian, mereka masih bersama.
+                    </p>
+                    <div class="about-stats">
+                        <div>
+                            <span class="stat-num">2018</span>
+                            <span class="stat-label">Berdiri Sejak</span>
+                        </div>
+                        <div>
+                            <span class="stat-num">20+</span>
+                            <span class="stat-label">Anggota</span>
+                        </div>
+                        <div>
+                            <span class="stat-num">2</span>
+                            <span class="stat-label">Party Besar</span>
+                        </div>
+                        <div>
+                            <span class="stat-num">∞</span>
+                            <span class="stat-label">Cerita</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photo — kanan -->
+                <div class="about-photo reveal-right">
+                    <div class="about-photo-main">
+                        <!-- Ganti dengan foto asli: -->
+                        <img src="assets/images/scitem.jpeg" alt="Dangerous Boys" />
+                        <div class="ph" style="min-height:460px;flex-direction:column;gap:8px">
+                            <span>📷</span>
+                            <span>Portrait Photo<br>Dangerous Boys</span>
+                        </div>
+                    </div>
+                    <div class="about-photo-accent">
+                        <img src="assets/images/socer2.jpeg" alt="" />
+                        <div class="ph" style="height:100%">Group</div>
+                    </div>
+                    <div class="about-photo-tag">Banjar City · 2018–Kini</div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       PARTY
+  ════════════════════════════════════════════════════════════ -->
+    <section id="party">
+        <div class="container">
+            <div class="party-header reveal">
+                <p class="section-eyebrow">Dokumentasi Perayaan</p>
+                <h2 class="section-title">
+                    Party<br>
+                    <em>Dangerous Boys</em>
+                </h2>
+            </div>
+
+            <div class="party-grid">
+
+                <!-- Party 1 -->
+                <div class="party-card reveal" onclick="openModal('party1')" role="button" tabindex="0"
+                    aria-label="Lihat Party Pertama 2021">
+                    <div class="party-card-img">
+                        <img src="assets/images/homeajay.jpeg" alt="Party Pertama 2021" />
+                        <div class="ph" style="min-height:360px">Party I — 2021</div>
+                    </div>
+                    <div class="party-card-overlay">
+                        <p class="pc-tag">Party Pertama · 2021</p>
+                        <h3 class="pc-title">Malam Pertama<br>Kita Merayakan</h3>
+                        <p class="pc-meta">📍 Banjar City &nbsp;·&nbsp; 40+ Tamu</p>
+                        <p class="pc-story">
+                            Malam di mana semuanya terasa seperti mimpi. Kita berkumpul untuk
+                            pertama kalinya dalam perayaan yang sesungguhnya — musik kencang,
+                            tawa tak berhenti, dan janji dibuat di bawah langit Banjar.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Party 2 -->
+                <div class="party-card reveal" style="transition-delay: .15s" onclick="openModal('party2')"
+                    role="button" tabindex="0" aria-label="Lihat Party Kedua 2023">
+                    <div class="party-card-img">
+                        <img src="assets/images/homeajay.jpeg" alt="Party Kedua 2023" />
+                        <div class="ph" style="min-height:500px">Party II — 2023</div>
+                    </div>
+                    <div class="party-card-overlay">
+                        <p class="pc-tag">Party Kedua · 2023</p>
+                        <h3 class="pc-title">Lebih Besar,<br>Lebih Liar</h3>
+                        <p class="pc-meta">📍 Banjar City &nbsp;·&nbsp; 80+ Tamu</p>
+                        <p class="pc-story">
+                            Dua tahun berlalu, Dangerous Boys kembali. Lebih ramai, lebih meriah,
+                            lebih penuh kenangan. Wajah baru berbaur dengan yang lama —
+                            semua menjadi satu dalam satu malam tak terlupakan.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       DEAR BANJAR CITY
+  ════════════════════════════════════════════════════════════ -->
+    <section id="dear-banjar">
+        <div class="container">
+
+            <div class="dear-header reveal">
+                <p class="section-eyebrow">Dear Banjar City</p>
+                <h2 class="section-title">
+                    Kota yang<br>
+                    <em>Membesarkan Kita</em>
+                </h2>
+                <p class="dear-lead">
+                    Setiap sudut Banjar menyimpan cerita. Jalanan yang kita tapaki bersama,
+                    warung tempat kita bercerita hingga subuh, dan langit yang selalu
+                    jadi saksi persahabatan kita.
+                </p>
+            </div>
+
+            <!-- Masonry gallery -->
+            <div class="dear-masonry">
+
+                <div class="dear-item reveal" onclick="openModal('banjar1')" role="button" tabindex="0">
+                    <img src="assets/images/botak.jpeg" alt="Jalanan Banjar" />
+                    <div class="ph" style="height: 310px">Jalanan Banjar</div>
+                    <div class="dear-item-caption">"Di sini kita belajar arti pulang." — Banjar City, 2022</div>
+                </div>
+
+                <div class="dear-item reveal" style="transition-delay: .1s" onclick="openModal('banjar2')" role="button"
+                    tabindex="0">
+                    <!-- <img src="assets/images/stories/banjar-2.jpg" alt="Komunitas" /> -->
+                    <div class="ph" style="height: 228px">Komunitas</div>
+                    <div class="dear-item-caption">"Persahabatan yang ditempa dari keringat dan tawa." — 2021</div>
+                </div>
+
+                <div class="dear-item reveal" style="transition-delay: .2s" onclick="openModal('banjar3')" role="button"
+                    tabindex="0">
+                    <!-- <img src="assets/images/stories/banjar-3.jpg" alt="Portrait" /> -->
+                    <div class="ph" style="height: 390px">Portrait</div>
+                    <div class="dear-item-caption">"Wajah-wajah yang akan selalu aku rindukan." — 2023</div>
+                </div>
+
+                <div class="dear-item reveal" style="transition-delay: .1s" onclick="openModal('banjar4')" role="button"
+                    tabindex="0">
+                    <!-- <img src="assets/images/stories/banjar-4.jpg" alt="Momen" /> -->
+                    <div class="ph" style="height: 355px">Momen</div>
+                    <div class="dear-item-caption">"Kita menulis sejarah kecil kita sendiri." — 2022</div>
+                </div>
+
+                <div class="dear-item reveal" style="transition-delay: .2s" onclick="openModal('banjar5')" role="button"
+                    tabindex="0">
+                    <!-- <img src="assets/images/stories/banjar-5.jpg" alt="Street" /> -->
+                    <div class="ph" style="height: 265px">Street</div>
+                    <div class="dear-item-caption">"Banjar mengajarkan kita bangga dengan tempat kita berdiri." — 2023
+                    </div>
+                </div>
+
+                <div class="dear-item reveal" style="transition-delay: .3s" onclick="openModal('banjar6')" role="button"
+                    tabindex="0">
+                    <!-- <img src="assets/images/stories/banjar-6.jpg" alt="Aktivitas" /> -->
+                    <div class="ph" style="height: 328px">Aktivitas</div>
+                    <div class="dear-item-caption">"Malam-malam panjang yang membentuk kita." — 2022</div>
+                </div>
+
+            </div>
+
+            <!-- Quote -->
+            <div class="dear-quote reveal">
+                <blockquote>
+                    "Banjar City bukan hanya tempat kita lahir — ia adalah tempat kita
+                    memilih untuk tetap tinggal, dalam kenangan dan dalam hati satu sama lain."
+                </blockquote>
+                <cite>— Dangerous Boys, Banjar City</cite>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       NEWS DANGEROUS BOYS
+  ════════════════════════════════════════════════════════════ -->
+    <section id="news">
+        <div class="container">
+            <div class="news-header reveal">
+                <p class="section-eyebrow">Cerita Terbaru</p>
+                <h2 class="section-title">
+                    News<br>
+                    <em>Dangerous Boys</em>
+                </h2>
+            </div>
+            <!-- Diisi oleh js/news.js -->
+            <div class="news-grid" id="newsGrid"></div>
+        </div>
+    </section>
+
+    <!-- FOOTER (di-inject oleh components/footer.js) -->
+    <div id="footer-root"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       MODAL (global, dipakai oleh modal.js)
+  ════════════════════════════════════════════════════════════ -->
+    <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-inner">
+            <button class="modal-close" onclick="closeModal()" aria-label="Tutup">✕ Tutup</button>
+            <div class="modal-img-wrap">
+                <img id="modalImg" src="" alt="" />
+                <div id="modalPh" aria-hidden="true"></div>
+            </div>
+            <div class="modal-body">
+                <p class="modal-tag" id="modalTag"></p>
+                <h3 class="modal-title" id="modalTitle"></h3>
+                <p class="modal-story" id="modalStory"></p>
+                <p class="modal-meta" id="modalMeta"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       SCRIPTS — urutan penting!
+  ════════════════════════════════════════════════════════════ -->
+    <!-- 1. Supabase helper (harus pertama) -->
+    <script src="js/supabase.js"></script>
+
+    <!-- 2. Components -->
+    <script src="components/navbar.js"></script>
+    <script src="components/footer.js"></script>
+    <script src="components/card-news.js"></script>
+
+    <!-- 3. JS modules -->
+    <script src="js/animation.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/news.js"></script>
+
+    <!-- 4. Entry point (jalankan setelah semua siap) -->
+    <script src="js/main.js"></script>
+
+</body>
+
+</html>

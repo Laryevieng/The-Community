@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Dangerous Boys</title>
+
+  <!-- CSS admin saja (tidak pakai style.css) -->
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       LOGIN SCREEN
+  ════════════════════════════════════════════════════════════ -->
+  <div id="loginScreen">
+    <div class="login-box">
+      <div class="login-logo">Dangerous <span>Boys</span></div>
+      <p class="login-sub">Admin Dashboard</p>
+      <div class="login-card">
+        <label for="loginPass">Password Admin</label>
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="Masukkan password..."
+          autocomplete="current-password"
+        />
+        <button class="btn-login" onclick="doLogin()">Masuk ke Dashboard</button>
+        <p class="login-err" id="loginErr">Password salah. Coba lagi.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ADMIN APP
+  ════════════════════════════════════════════════════════════ -->
+  <div id="adminApp">
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-logo">
+        Dangerous <span>Boys</span>
+        <small>Admin Dashboard</small>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" id="navCreate" class="active" onclick="showTab('create', this); return false;">
+          <span class="sidebar-icon">✏️</span> Buat Post Baru
+        </a>
+        <a href="#" id="navList" onclick="showTab('list', this); return false;">
+          <span class="sidebar-icon">📋</span> Semua Post
+        </a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <a href="index.html" class="sidebar-back">← Kembali ke Website</a>
+        <button class="btn-logout" onclick="doLogout()">Keluar</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="admin-main">
+
+      <!-- TOP BAR -->
+      <div class="admin-topbar">
+        <h1 id="pageTitle">Buat Post <em>Baru</em></h1>
+        <div id="adminDate"></div>
+      </div>
+
+      <!-- BANNER: Supabase belum dikonfigurasi -->
+      <div id="configBanner" style="display:none;background:#7a3c00;color:#ffd6a0;padding:14px 20px;border-radius:2px;margin-bottom:28px;display:none;align-items:flex-start;gap:12px;font-size:0.84rem;line-height:1.65">
+        <span>⚠️</span>
+        <div>
+          <strong>Supabase belum dikonfigurasi</strong> — data tidak akan tersimpan.<br>
+          Buka <code style="background:rgba(0,0,0,0.25);padding:1px 5px;border-radius:3px">js/supabase.js</code>
+          dan ganti <code style="background:rgba(0,0,0,0.25);padding:1px 5px;border-radius:3px">YOUR_SUPABASE_URL</code>
+          &amp; <code style="background:rgba(0,0,0,0.25);padding:1px 5px;border-radius:3px">YOUR_SUPABASE_ANON_KEY</code>.
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="admin-stats">
+        <div class="stat-card">
+          <span class="stat-card-num" id="statTotal">—</span>
+          <span class="stat-card-label">Total Post</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card-num">2</span>
+          <span class="stat-card-label">Party Terdokumentasi</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card-num">2018</span>
+          <span class="stat-card-label">Berdiri Sejak</span>
+        </div>
+      </div>
+
+      <!-- ─────────────────────────────────────────────────────
+           TAB: CREATE / EDIT
+      ──────────────────────────────────────────────────────── -->
+      <div id="tabCreate">
+        <div class="form-card">
+          <h2 class="form-card-title" id="formTitle">Post Baru</h2>
+          <input type="hidden" id="editId" />
+
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label class="form-label" for="fTitle">Judul Post *</label>
+              <input type="text" class="form-input" id="fTitle" placeholder="Tulis judul cerita..." />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fAuthor">Nama Penulis</label>
+              <input type="text" class="form-input" id="fAuthor" placeholder="Nama anggota..." />
+            </div>
+
+            <div class="form-group full">
+              <label class="form-label" for="fStory">Cerita / Isi Post *</label>
+              <textarea class="form-textarea" id="fStory" placeholder="Tuliskan cerita Dangerous Boys..."></textarea>
+            </div>
+
+            <div class="form-group full">
+              <label class="form-label" for="fImageUrl">URL Foto</label>
+              <input
+                type="text"
+                class="form-input"
+                id="fImageUrl"
+                placeholder="https://... (paste URL foto)"
+                style="margin-bottom: 8px"
+              />
+              <div class="img-url-or">— atau upload file —</div>
+              <div class="img-upload-area" id="uploadArea">
+                <input type="file" accept="image/*" id="fImageFile" onchange="handleFileChange(this)" />
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">
+                  Drag & drop atau <strong>klik untuk pilih gambar</strong><br>
+                  <small>JPG, PNG, WEBP — maks 5MB</small>
+                </div>
+              </div>
+              <div class="img-preview" id="imgPreview" style="display:none">
+                <img id="imgPreviewImg" src="" alt="preview" />
+                <button class="img-preview-clear" onclick="clearImagePreview()" aria-label="Hapus preview">✕</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Status pesan (error / success / info) -->
+          <div id="formStatus" style="display:none;margin-top:20px;padding:12px 16px;border-radius:2px;font-size:0.84rem;line-height:1.6;white-space:pre-wrap"></div>
+
+          <div class="form-actions">
+            <button class="btn-primary" id="btnSubmit" onclick="submitPost()">Terbitkan Post</button>
+            <button class="btn-secondary" onclick="resetForm()">Batal / Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─────────────────────────────────────────────────────
+           TAB: LIST ALL POSTS
+      ──────────────────────────────────────────────────────── -->
+      <div id="tabList" style="display: none">
+        <div class="table-card">
+          <div class="table-header">
+            <h2 class="table-title">Semua Post</h2>
+            <input
+              type="search"
+              class="table-search"
+              id="tableSearch"
+              placeholder="Cari judul atau penulis..."
+              oninput="filterTable(this.value)"
+            />
+          </div>
+          <div style="overflow-x: auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Foto</th>
+                  <th>Judul</th>
+                  <th>Cerita</th>
+                  <th>Penulis</th>
+                  <th>Tanggal</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="postTableBody">
+                <tr><td colspan="6" class="table-empty">Memuat data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CONFIRM DELETE DIALOG
+  ════════════════════════════════════════════════════════════ -->
+  <div id="confirmOverlay" role="dialog" aria-modal="true" aria-label="Konfirmasi hapus">
+    <div class="confirm-box">
+      <h3 class="confirm-title">Hapus Post?</h3>
+      <p class="confirm-msg">
+        Tindakan ini tidak dapat dibatalkan.
+        Post akan dihapus secara permanen dari database Supabase.
+      </p>
+      <div class="confirm-actions">
+        <button class="btn-danger" onclick="confirmDelete()">Ya, Hapus</button>
+        <button class="btn-secondary" onclick="cancelDelete()">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast" role="alert" aria-live="polite"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCRIPTS
+  ════════════════════════════════════════════════════════════ -->
+  <!-- 1. Supabase helpers -->
+  <script src="js/supabase.js"></script>
+
+  <!-- 2. Admin logic -->
+  <script src="js/admin.js"></script>
+
+</body>
+</html>
