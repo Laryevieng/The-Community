@@ -1,21 +1,22 @@
 // ============================================================
 //  js/retro-bg.js — REAL RETRO MOBA SOCCER STADIUM ENGINE
-//  Kendali Geser Bebas 360° Ala Mobile Legends (Virtual Joystick)
-//  Direct Pitch Tap · 2 Gawang & Kiper AI · 60 FPS Locked
+//  Fixed Timestep 60FPS · Smooth Lerp Velocity & Dribble
+//  Aspect-Ratio Preserved Display (Mobile/Tablet/Laptop)
+//  Dynamic Floating 360° Joystick & Glassmorphic MOBA Skills
 // ============================================================
 
 (function () {
   'use strict';
 
-  // Resolusi virtual retro arcade (640x360) — tajam, proporsional, 0% lag
+  // Resolusi virtual retro arcade (640x360) — proporsi 16:9 stadion klasik
   const V_WIDTH = 640;
   const V_HEIGHT = 360;
 
   // Batas area lapangan hijau
-  const PITCH_TOP = 70;
-  const PITCH_BOTTOM = 330;
-  const PITCH_LEFT = 36;
-  const PITCH_RIGHT = 604;
+  const PITCH_TOP = 64;
+  const PITCH_BOTTOM = 336;
+  const PITCH_LEFT = 38;
+  const PITCH_RIGHT = 602;
 
   // Dimensi gawang kiri dan kanan
   const GOAL_Y_TOP = 145;
@@ -27,6 +28,8 @@
   let animId = null;
   let isPaused = false;
   let lastTime = 0;
+  let accumulator = 0;
+  const FIXED_STEP = 1 / 60; // 60 FPS deterministic physics
 
   // Skor & Timer Pertandingan
   let scorePlayer = 0; // Dangerous Boys (BJR-18)
@@ -46,8 +49,6 @@
     right: false,
     up: false,
     down: false,
-    sprint: false,
-    sprintCooldown: 0,
   };
 
   // Audio Sintesis Retro (Web Audio API)
@@ -164,8 +165,10 @@
     }
   }
 
-  // ── SPRITES PIXEL ART ────────────────────────────────────────
-  const SPRITE_P1_RUN_1 = [
+  // ── SPRITES PIXEL ART (4-STAGE SMOOTH RUN CYCLE) ─────────────
+
+  // Dangerous Boys (Jersey Emas BJR-18)
+  const SPRITE_P1_STAND = [
     "...OOOOOO...",
     "...PPPPPP...",
     "...P.K.KP...",
@@ -180,7 +183,7 @@
     "..RR....RR..",
   ];
 
-  const SPRITE_P1_RUN_2 = [
+  const SPRITE_P1_RUN_L = [
     "...OOOOOO...",
     "...PPPPPP...",
     "...P.K.KP...",
@@ -193,6 +196,21 @@
     "...KK...KK..",
     "..RR.....RR.",
     "..RR......RR",
+  ];
+
+  const SPRITE_P1_RUN_R = [
+    "...OOOOOO...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "...GGGGGG...",
+    "..GGKKKKGG..",
+    "..GGGGGGGG..",
+    "...GGGGGG...",
+    "...KK.KK....",
+    "..KK...KK...",
+    ".RR.....RR..",
+    "RR......RR..",
   ];
 
   const SPRITE_P1_KICK = [
@@ -224,7 +242,8 @@
     "..RR....RR..",
   ];
 
-  const SPRITE_OPP_RUN_1 = [
+  // Lawan (Jersey Biru Banjar Rival FC)
+  const SPRITE_OPP_STAND = [
     "...KKKKKK...",
     "...PPPPPP...",
     "...P.K.KP...",
@@ -239,7 +258,7 @@
     "..KK....KK..",
   ];
 
-  const SPRITE_OPP_RUN_2 = [
+  const SPRITE_OPP_RUN_L = [
     "...KKKKKK...",
     "...PPPPPP...",
     "...P.K.KP...",
@@ -254,6 +273,22 @@
     "..KK......KK",
   ];
 
+  const SPRITE_OPP_RUN_R = [
+    "...KKKKKK...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "...BBBBBB...",
+    "..BBWWWWBB..",
+    "..BBBBBBBB..",
+    "...BBBBBB...",
+    "...WW.WW....",
+    "..WW...WW...",
+    ".KK.....KK..",
+    "KK......KK..",
+  ];
+
+  // Kiper (Jersey Hijau Terang)
   const SPRITE_GK = [
     "...KKKKKK...",
     "...PPPPPP...",
@@ -268,6 +303,7 @@
     "..YY....YY..",
   ];
 
+  // Bola Sepak 8x8
   const SPRITE_BALL = [
     "..KKKK..",
     ".KWWWWK.",
@@ -305,11 +341,10 @@
     y: 200,
     vx: 0,
     vy: 0,
-    baseSpeed: 2.6,
+    baseSpeed: 2.7,
     facing: 1,
     state: 'idle',
-    frame: 0,
-    animTimer: 0,
+    animPhase: 0,
     kickTimer: 0,
     dashTimer: 0,
   };
@@ -317,10 +352,11 @@
   const teammate = {
     x: 180,
     y: 130,
+    vx: 0,
+    vy: 0,
     speed: 1.8,
     facing: 1,
-    frame: 0,
-    animTimer: 0,
+    animPhase: 0,
   };
 
   const opponent = {
@@ -330,8 +366,7 @@
     vy: 0,
     speed: 1.8,
     facing: -1,
-    frame: 0,
-    animTimer: 0,
+    animPhase: 0,
   };
 
   const goalieRight = {
@@ -387,6 +422,32 @@
     }
   }
 
+  // ── HITUNG KOORDINAT SENTUH PADA CANVAS (LETTERBOX AWARE) ────
+  function getCanvasCoords(clientX, clientY) {
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const canvasAspect = V_WIDTH / V_HEIGHT;
+    const rectAspect = rect.width / rect.height;
+
+    let renderWidth, renderHeight, offsetX, offsetY;
+    if (rectAspect > canvasAspect) {
+      renderHeight = rect.height;
+      renderWidth = renderHeight * canvasAspect;
+      offsetX = (rect.width - renderWidth) / 2;
+      offsetY = 0;
+    } else {
+      renderWidth = rect.width;
+      renderHeight = renderWidth / canvasAspect;
+      offsetX = 0;
+      offsetY = (rect.height - renderHeight) / 2;
+    }
+
+    const scale = V_WIDTH / renderWidth;
+    const x = (clientX - (rect.left + offsetX)) * scale;
+    const y = (clientY - (rect.top + offsetY)) * scale;
+    return { x, y };
+  }
+
   // ── DYNAMIC FLOATING MOBA JOYSTICK (MUNCUL OTOMATIS DI MANA PUN KURSOR DITARUH) ──
   function setupMobaJoystick() {
     const arena = document.getElementById('retro-game');
@@ -394,7 +455,7 @@
     const knob = document.getElementById('mobaJoyKnob');
     if (!arena || !base || !knob) return;
 
-    const MAX_DIST = 36;
+    const MAX_DIST = 38;
     let activePointerId = null;
     let originX = 0;
     let originY = 0;
@@ -412,14 +473,22 @@
 
       knob.style.transform = `translate(${knobX}px, ${knobY}px)`;
 
+      // Normalisasi vektor dengan deadzone halus
       const intensity = clampedDist / MAX_DIST;
-      joystickVector.x = Math.cos(angle) * intensity;
-      joystickVector.y = Math.sin(angle) * intensity;
-      joystickVector.active = true;
+      if (intensity > 0.08) {
+        joystickVector.x = Math.cos(angle) * intensity;
+        joystickVector.y = Math.sin(angle) * intensity;
+        joystickVector.active = true;
+      } else {
+        joystickVector.x = 0;
+        joystickVector.y = 0;
+        joystickVector.active = false;
+      }
       tapTarget.active = false;
     }
 
     arena.addEventListener('pointerdown', (e) => {
+      // Abaikan bila menekan tombol aksi kanan atau HUD mini
       if (e.target.closest('.moba-action-cluster') || e.target.closest('.arcade-hud-mini')) return;
 
       initAudio();
@@ -465,43 +534,19 @@
     arena.addEventListener('pointercancel', releaseJoystick);
   }
 
-  // ── DIRECT TOUCH / KLIK PADA LAPANGAN (MOVE TO POINT) ────────
+  // ── DIRECT TOUCH / TAP TO MOVE PADA LAPANGAN ─────────────────
   function setupPitchDirectTouch() {
     if (!canvas) return;
 
     canvas.addEventListener('pointerdown', (e) => {
-      // Cegah bentrok bila menekan tombol HUD
-      if (e.target.closest('.arcade-hud') || e.target.closest('.arcade-bottom-panel')) return;
+      if (e.target.closest('.moba-action-cluster') || e.target.closest('.arcade-hud-mini')) return;
 
-      initAudio();
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = V_WIDTH / rect.width;
-      const scaleY = V_HEIGHT / rect.height;
-
-      const clickX = (e.clientX - rect.left) * scaleX;
-      const clickY = (e.clientY - rect.top) * scaleY;
-
-      // Jangan terima klik di area tribun penonton atas
-      if (clickY < PITCH_TOP) return;
-
-      tapTarget.x = clickX;
-      tapTarget.y = clickY;
-      tapTarget.active = true;
-    });
-
-    canvas.addEventListener('pointermove', (e) => {
-      // Dragging langsung di atas lapangan mengarahkan pemain mengikuti jari
-      if (e.buttons === 1) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = V_WIDTH / rect.width;
-        const scaleY = V_HEIGHT / rect.height;
-        const clickX = (e.clientX - rect.left) * scaleX;
-        const clickY = (e.clientY - rect.top) * scaleY;
-        if (clickY >= PITCH_TOP) {
-          tapTarget.x = clickX;
-          tapTarget.y = clickY;
-          tapTarget.active = true;
-        }
+      const coords = getCanvasCoords(e.clientX, e.clientY);
+      if (coords.y >= PITCH_TOP && coords.y <= PITCH_BOTTOM && coords.x >= PITCH_LEFT && coords.x <= PITCH_RIGHT) {
+        initAudio();
+        tapTarget.x = coords.x;
+        tapTarget.y = coords.y;
+        tapTarget.active = true;
       }
     });
   }
@@ -520,16 +565,10 @@
       btn.addEventListener('pointerdown', act);
     };
 
-    // 1. Tembak Gol Keras (Skill Utama / Basic Attack)
     bindAction('mobaShoot', executeShoot);
-
-    // 2. Oper Umpan Terobosan (Skill 1)
     bindAction('mobaPass', executePass);
-
-    // 3. Sprint / Dash Kilat (Skill 2 / Flicker)
     bindAction('mobaDash', executeDash);
 
-    // Sound & Reset
     const btnSound = document.getElementById('arcSound');
     if (btnSound) {
       btnSound.addEventListener('click', () => {
@@ -554,18 +593,18 @@
   // ── AKSI TEMBAKAN, UMPAN, & DASH ─────────────────────────────
   function executeShoot() {
     const dist = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
-    if (dist < 28) {
+    if (dist < 32) {
       player.state = 'kick';
       player.kickTimer = 0.25;
 
-      const targetGoalX = PITCH_RIGHT + 12;
+      const targetGoalX = PITCH_RIGHT + 14;
       const targetGoalY = GOAL_Y_TOP + (GOAL_Y_BOTTOM - GOAL_Y_TOP) * (0.2 + Math.random() * 0.6);
       const angle = Math.atan2(targetGoalY - ball.y, targetGoalX - ball.x);
 
-      const power = player.dashTimer > 0 ? 7.2 : 5.8;
+      const power = player.dashTimer > 0 ? 7.6 : 6.0;
       ball.vx = Math.cos(angle) * power;
       ball.vy = Math.sin(angle) * power * 0.65;
-      ball.vz = 3.4 + Math.random() * 1.8;
+      ball.vz = 3.6 + Math.random() * 1.8;
 
       playRetroSound('shoot');
     }
@@ -573,12 +612,12 @@
 
   function executePass() {
     const dist = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
-    if (dist < 28) {
+    if (dist < 32) {
       player.state = 'kick';
       player.kickTimer = 0.2;
 
       const angle = Math.atan2(teammate.y - ball.y, teammate.x - ball.x);
-      const power = 4.4;
+      const power = 4.6;
       ball.vx = Math.cos(angle) * power;
       ball.vy = Math.sin(angle) * power;
       ball.vz = 0.6;
@@ -589,12 +628,11 @@
 
   function executeDash() {
     if (player.dashTimer <= 0) {
-      player.dashTimer = 0.45; // Durasi dash kilat
+      player.dashTimer = 0.45;
       playRetroSound('dash');
     }
   }
 
-  // ── KEYBOARD HANDLERS (OPSIONAL UNTUK PENGGUNA LAPTOP) ────────
   function handleKeyDown(e) {
     initAudio();
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
@@ -614,7 +652,7 @@
     if (e.code === 'ArrowDown' || e.code === 'KeyS') input.down = false;
   }
 
-  // ── UPDATE FISIKA DAN LOGIKA PERTANDINGAN ─────────────────────
+  // ── UPDATE FISIKA DENGAN LERP PERMULUSAN (60 FPS FIXED) ──────
   function updateGame(dt) {
     // 1. Partikel Selebrasi Gol
     for (let i = goalParticles.length - 1; i >= 0; i--) {
@@ -635,36 +673,34 @@
     if (matchTime > 0) matchTime -= dt * 25;
 
     // 2. Kecepatan dan Status Dash (Skill Sprint)
-    let currentSpeed = player.baseSpeed;
+    let maxSpeed = player.baseSpeed;
     if (player.dashTimer > 0) {
       player.dashTimer -= dt;
-      currentSpeed = player.baseSpeed * 1.8; // Kecepatan kilat saat dash
+      maxSpeed = player.baseSpeed * 1.85;
     }
 
-    // 3. Sistem Gerak 360° Mengalir (MOBA Joystick / Direct Tap)
+    // 3. TARGET VELOCITY DARI MOBA JOYSTICK / TAP / KEYBOARD
+    let targetVx = 0;
+    let targetVy = 0;
+
     if (joystickVector.active) {
-      // Bergerak mengalir 360° mengikuti arah jempol secara langsung
-      player.vx = joystickVector.x * currentSpeed;
-      player.vy = joystickVector.y * currentSpeed * 0.8;
+      targetVx = joystickVector.x * maxSpeed;
+      targetVy = joystickVector.y * maxSpeed * 0.8;
       if (Math.abs(joystickVector.x) > 0.08) {
         player.facing = joystickVector.x > 0 ? 1 : -1;
       }
     } else if (tapTarget.active) {
-      // Bergerak menuju titik tap di lapangan
       const dx = tapTarget.x - (player.x + 8);
       const dy = tapTarget.y - (player.y + 12);
       const dist = Math.hypot(dx, dy);
-      if (dist > 6) {
-        player.vx = (dx / dist) * currentSpeed;
-        player.vy = (dy / dist) * currentSpeed * 0.8;
+      if (dist > 8) {
+        targetVx = (dx / dist) * maxSpeed;
+        targetVy = (dy / dist) * maxSpeed * 0.8;
         player.facing = dx > 0 ? 1 : -1;
       } else {
-        player.vx = 0;
-        player.vy = 0;
         tapTarget.active = false;
       }
     } else {
-      // Fallback Keyboard
       let kx = 0;
       let ky = 0;
       if (input.left) kx -= 1;
@@ -674,14 +710,16 @@
 
       if (kx !== 0 || ky !== 0) {
         const len = Math.hypot(kx, ky);
-        player.vx = (kx / len) * currentSpeed;
-        player.vy = (ky / len) * currentSpeed * 0.8;
+        targetVx = (kx / len) * maxSpeed;
+        targetVy = (ky / len) * maxSpeed * 0.8;
         if (kx !== 0) player.facing = kx > 0 ? 1 : -1;
-      } else {
-        player.vx = 0;
-        player.vy = 0;
       }
     }
+
+    // ── LERP PERMULUSAN INERSIA GERAK PEMAIN (ACCELERATION & DECELERATION) ──
+    const accel = 0.24; // Akselerasi halus
+    player.vx += (targetVx - player.vx) * accel;
+    player.vy += (targetVy - player.vy) * accel;
 
     player.x += player.vx * 60 * dt;
     player.y += player.vy * 60 * dt;
@@ -690,13 +728,12 @@
     player.x = Math.max(PITCH_LEFT + 8, Math.min(PITCH_RIGHT - 24, player.x));
     player.y = Math.max(PITCH_TOP + 4, Math.min(PITCH_BOTTOM - 24, player.y));
 
-    // Animasi langkah kaki
-    if (Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1) {
-      player.animTimer += dt;
-      if (player.animTimer > (player.dashTimer > 0 ? 0.07 : 0.12)) {
-        player.frame = (player.frame + 1) % 2;
-        player.animTimer = 0;
-      }
+    // Animasi langkah kaki mulus (4 tahap berulang secara ritmis)
+    const currentSpeedMag = Math.hypot(player.vx, player.vy);
+    if (currentSpeedMag > 0.2) {
+      player.animPhase += currentSpeedMag * dt * 3.8;
+    } else {
+      player.animPhase = 0;
     }
 
     if (player.kickTimer > 0) {
@@ -704,37 +741,46 @@
       if (player.kickTimer <= 0) player.state = 'idle';
     }
 
-    // 4. AI Teman Setim (Dangerous Boys No. 7)
-    const targetTeammateX = player.x + 84;
-    const dxTm = targetTeammateX - teammate.x;
-    teammate.x += Math.sign(dxTm) * Math.min(Math.abs(dxTm), teammate.speed * 60 * dt);
-    teammate.x = Math.max(PITCH_LEFT + 20, Math.min(PITCH_RIGHT - 60, teammate.x));
+    // 4. AI Teman Setim (Dangerous Boys No. 7) — Gerak Halus
+    const targetTeammateX = player.x + 88;
+    const targetTeammateY = player.y > (PITCH_TOP + PITCH_BOTTOM) / 2 ? player.y - 70 : player.y + 70;
+    teammate.vx += (Math.sign(targetTeammateX - teammate.x) * teammate.speed - teammate.vx) * 0.12;
+    teammate.vy += (Math.sign(targetTeammateY - teammate.y) * teammate.speed * 0.6 - teammate.vy) * 0.12;
 
-    // 5. AI Bek Lawan (Banjar Rival FC No. 4)
-    const targetDefX = ball.x > V_WIDTH / 2 ? ball.x + 14 : V_WIDTH / 2 + 60;
+    teammate.x += teammate.vx * 60 * dt;
+    teammate.y += teammate.vy * 60 * dt;
+    teammate.x = Math.max(PITCH_LEFT + 24, Math.min(PITCH_RIGHT - 70, teammate.x));
+    teammate.y = Math.max(PITCH_TOP + 10, Math.min(PITCH_BOTTOM - 26, teammate.y));
+    teammate.animPhase += Math.hypot(teammate.vx, teammate.vy) * dt * 3.5;
+
+    // 5. AI Bek Lawan (Banjar Rival FC No. 4) — Smooth Pursuit
+    const targetDefX = ball.x > V_WIDTH / 2 ? ball.x + 14 : V_WIDTH / 2 + 70;
     const targetDefY = ball.y;
     const angleDef = Math.atan2(targetDefY - opponent.y, targetDefX - opponent.x);
-    opponent.vx = Math.cos(angleDef) * opponent.speed;
-    opponent.vy = Math.sin(angleDef) * opponent.speed * 0.7;
+    const oppTargetVx = Math.cos(angleDef) * opponent.speed;
+    const oppTargetVy = Math.sin(angleDef) * opponent.speed * 0.7;
+
+    opponent.vx += (oppTargetVx - opponent.vx) * 0.15;
+    opponent.vy += (oppTargetVy - opponent.vy) * 0.15;
 
     opponent.x += opponent.vx * 60 * dt;
     opponent.y += opponent.vy * 60 * dt;
     opponent.facing = opponent.vx > 0 ? 1 : -1;
+    opponent.animPhase += Math.hypot(opponent.vx, opponent.vy) * dt * 3.5;
 
-    // Tackle Bek Lawan jika dekat bola
+    // Tackle Bek Lawan
     const distOppBall = Math.hypot(opponent.x + 8 - ball.x, opponent.y + 12 - ball.y);
     if (distOppBall < 18) {
-      ball.vx = -(4.0 + Math.random() * 1.6);
+      ball.vx = -(4.2 + Math.random() * 1.6);
       ball.vy = (Math.random() - 0.5) * 3.0;
-      ball.vz = 2.0;
+      ball.vz = 2.2;
       playRetroSound('kick');
     }
 
-    // 6. AI Kiper Lawan (Gawang Kanan)
+    // 6. AI Kiper Lawan (Gawang Kanan) — Smooth Glide
+    const targetGkY = Math.max(GOAL_Y_TOP + 12, Math.min(GOAL_Y_BOTTOM - 12, ball.y));
+    goalieRight.vy += (Math.sign(targetGkY - goalieRight.y) * 1.4 - goalieRight.vy) * 0.18;
     goalieRight.y += goalieRight.vy * 60 * dt;
-    if (goalieRight.y >= goalieRight.maxY || goalieRight.y <= goalieRight.minY) {
-      goalieRight.vy = -goalieRight.vy;
-    }
 
     if (
       ball.x >= PITCH_RIGHT - 24 &&
@@ -743,30 +789,29 @@
       ball.y <= GOAL_Y_BOTTOM + 10 &&
       Math.abs(ball.y - (goalieRight.y + 12)) < 30
     ) {
-      ball.vx = -(3.8 + Math.random() * 1.5);
+      ball.vx = -(4.0 + Math.random() * 1.5);
       ball.vy = (Math.random() - 0.5) * 4;
-      ball.vz = 2.2;
+      ball.vz = 2.4;
       playRetroSound('save');
     }
 
     // 7. AI Kiper Dangerous Boys (Gawang Kiri)
+    const targetGkLeftY = Math.max(GOAL_Y_TOP + 12, Math.min(GOAL_Y_BOTTOM - 12, ball.y));
+    goalieLeft.vy += (Math.sign(targetGkLeftY - goalieLeft.y) * 1.2 - goalieLeft.vy) * 0.18;
     goalieLeft.y += goalieLeft.vy * 60 * dt;
-    if (goalieLeft.y >= goalieLeft.maxY || goalieLeft.y <= goalieLeft.minY) {
-      goalieLeft.vy = -goalieLeft.vy;
-    }
 
     if (
       ball.x <= PITCH_LEFT + 24 &&
       ball.x >= PITCH_LEFT - 6 &&
       Math.abs(ball.y - (goalieLeft.y + 12)) < 30
     ) {
-      ball.vx = 3.8 + Math.random() * 1.5;
+      ball.vx = 4.0 + Math.random() * 1.5;
       ball.vy = (Math.random() - 0.5) * 4;
-      ball.vz = 2.0;
+      ball.vz = 2.2;
       playRetroSound('save');
     }
 
-    // 8. Fisika Bola
+    // ── 8. FISIKA BOLA & DRIBBLE MAGNETIK HALUS ─────────────────
     ball.x += ball.vx * 60 * dt;
     ball.y += ball.vy * 60 * dt;
 
@@ -782,17 +827,21 @@
 
     ball.vx *= 0.985;
     ball.vy *= 0.985;
-    ball.rotation += ball.vx * dt * 8;
+    ball.rotation += (Math.hypot(ball.vx, ball.vy) * 0.15 * Math.sign(ball.vx || 1));
 
-    // Dribble bola otomatis saat pemain berjalan mendorong bola
+    // Kontrol Dribble Magnetik Mulus (Bola menempel halus di kaki pemain)
     const distP1Ball = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
-    if (distP1Ball < 18 && ball.z < 6 && player.kickTimer <= 0) {
-      ball.vx = player.facing * (Math.abs(player.vx) + 0.8);
-      ball.vy = player.vy * 0.9;
+    if (distP1Ball < 22 && ball.z < 6 && player.kickTimer <= 0) {
+      const targetBallX = player.x + 8 + player.facing * 12;
+      const targetBallY = player.y + 18;
+      // Interpolasi mulus mendekat ke ujung sepatu
+      ball.x += (targetBallX - ball.x) * 0.28;
+      ball.y += (targetBallY - ball.y) * 0.28;
+      ball.vx = player.vx * 1.05;
+      ball.vy = player.vy * 1.05;
     }
 
-    // 9. Deteksi Gol 2 Gawang
-    // Gawang Kanan (GOL DANGEROUS BOYS)
+    // ── 9. DETEKSI GOL 2 GAWANG ──────────────────────────────────
     if (
       ball.x >= PITCH_RIGHT &&
       ball.x <= PITCH_RIGHT + GOAL_DEPTH &&
@@ -804,7 +853,6 @@
       return;
     }
 
-    // Gawang Kiri (GOL LAWAN)
     if (
       ball.x <= PITCH_LEFT &&
       ball.x >= PITCH_LEFT - GOAL_DEPTH &&
@@ -816,7 +864,7 @@
       return;
     }
 
-    // Pantulan tiang atas dan bawah
+    // Pantulan tiang
     if (ball.y < PITCH_TOP + 4) {
       ball.y = PITCH_TOP + 4;
       ball.vy = Math.abs(ball.vy) * 0.8;
@@ -862,6 +910,8 @@
     ball.reset();
     player.x = 220;
     player.y = 200;
+    player.vx = 0;
+    player.vy = 0;
     player.state = 'idle';
     teammate.x = 180;
     teammate.y = 130;
@@ -880,18 +930,31 @@
     drawPixelMatrix(ctx, SPRITE_GK, goalieLeft.x, goalieLeft.y, 2, false);
     drawPixelMatrix(ctx, SPRITE_GK, goalieRight.x, goalieRight.y, 2, true);
 
-    // Pemain Lawan
-    const oppSprite = opponent.frame === 0 ? SPRITE_OPP_RUN_1 : SPRITE_OPP_RUN_2;
+    // AI Lawan (Animasi 4 Langkah Halus)
+    const oppCycle = Math.floor(opponent.animPhase) % 4;
+    let oppSprite = SPRITE_OPP_STAND;
+    if (oppCycle === 1) oppSprite = SPRITE_OPP_RUN_L;
+    if (oppCycle === 3) oppSprite = SPRITE_OPP_RUN_R;
     drawPixelMatrix(ctx, oppSprite, opponent.x, opponent.y, 2, opponent.facing === -1);
 
     // Teman Setim
-    const tmSprite = teammate.frame === 0 ? SPRITE_P1_RUN_1 : SPRITE_P1_RUN_2;
+    const tmCycle = Math.floor(teammate.animPhase) % 4;
+    let tmSprite = SPRITE_P1_STAND;
+    if (tmCycle === 1) tmSprite = SPRITE_P1_RUN_L;
+    if (tmCycle === 3) tmSprite = SPRITE_P1_RUN_R;
     drawPixelMatrix(ctx, tmSprite, teammate.x, teammate.y, 2, false);
 
-    // Pemain Anda (BJR-18 Dangerous Boys)
-    let pSprite = player.frame === 0 ? SPRITE_P1_RUN_1 : SPRITE_P1_RUN_2;
-    if (player.state === 'kick') pSprite = SPRITE_P1_KICK;
-    if (player.state === 'celebrate') pSprite = SPRITE_P1_CELEBRATE;
+    // Pemain Anda (BJR-18 Dangerous Boys) — 4-Stage Animation
+    let pSprite = SPRITE_P1_STAND;
+    if (player.state === 'kick') {
+      pSprite = SPRITE_P1_KICK;
+    } else if (player.state === 'celebrate') {
+      pSprite = SPRITE_P1_CELEBRATE;
+    } else {
+      const pCycle = Math.floor(player.animPhase) % 4;
+      if (pCycle === 1) pSprite = SPRITE_P1_RUN_L;
+      if (pCycle === 3) pSprite = SPRITE_P1_RUN_R;
+    }
     drawPixelMatrix(ctx, pSprite, player.x, player.y, 2, player.facing === -1);
 
     // Indikator Hero MOBA di atas kepala
@@ -899,7 +962,7 @@
     ctx.font = 'bold 8px monospace';
     ctx.fillText('▼ BJR·10', player.x - 2, player.y - 6);
 
-    // Efek lingkaran aura hero di kaki pemain (Khas MOBA)
+    // Lingkaran Aura Hero MOBA di kaki
     ctx.strokeStyle = player.dashTimer > 0 ? '#38bdf8' : 'rgba(250, 204, 21, 0.45)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -925,7 +988,7 @@
 
     const crowdColors = ['#dc2626', '#2563eb', '#f59e0b', '#ffffff', '#10b981', '#7c3aed'];
     for (let row = 0; row < 3; row++) {
-      const y = 8 + row * 16;
+      const y = 8 + row * 15;
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(0, y + 10, V_WIDTH, 4);
 
@@ -1055,17 +1118,22 @@
     ctx.textAlign = 'left';
   }
 
-  // ── GAME LOOP ───────────────────────────────────────────────
+  // ── FIXED TIMESTEP 60FPS ACCUMULATOR GAME LOOP (ZERO STUTTER) ──
   function gameLoop(now) {
-    if (!isPaused) {
-      const dt = Math.min((now - lastTime) / 1000, 0.08);
-      lastTime = now;
+    if (!lastTime) lastTime = now;
+    let elapsed = (now - lastTime) / 1000;
+    lastTime = now;
 
-      updateGame(dt);
+    if (elapsed > 0.1) elapsed = 0.1; // Clamp lag spikes
+
+    if (!isPaused) {
+      accumulator += elapsed;
+      while (accumulator >= FIXED_STEP) {
+        updateGame(FIXED_STEP);
+        accumulator -= FIXED_STEP;
+      }
       render();
       updateHUDDisplay();
-    } else {
-      lastTime = now;
     }
 
     animId = requestAnimationFrame(gameLoop);

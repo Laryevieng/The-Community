@@ -210,16 +210,17 @@ section {
   top: 0;
   left: 0;
   right: 0;
-  height: 68px;
+  height: 60px;
   z-index: 100;
-  padding: 0 36px;
+  padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: rgba(250, 247, 240, 0.88);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--paper-line);
-  transition: background-color 0.25s, border-color 0.25s;
+  background-color: rgba(11, 15, 25, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background-color 0.25s, border-color 0.25s, color 0.25s;
 }
 
 #navbar.scrolled {
@@ -238,8 +239,13 @@ section {
   font-family: var(--font-serif);
   font-size: 1.45rem;
   font-weight: 700;
-  color: var(--ink-carbon);
+  color: #ffffff;
   letter-spacing: -0.01em;
+  transition: color 0.25s ease;
+}
+
+#navbar.scrolled .nav-logo {
+  color: var(--ink-carbon);
 }
 
 .nav-badge {
@@ -247,16 +253,23 @@ section {
   font-size: 0.68rem;
   font-weight: 600;
   padding: 2px 7px;
-  background-color: var(--paper-raised);
-  border: 1px solid var(--paper-edge);
-  color: var(--film-red);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #facc15;
   border-radius: 2px;
+  transition: all 0.25s ease;
+}
+
+#navbar.scrolled .nav-badge {
+  background-color: var(--paper-raised);
+  border-color: var(--paper-edge);
+  color: var(--film-red);
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 28px;
   list-style: none;
 }
 
@@ -264,13 +277,22 @@ section {
   font-family: var(--font-sans);
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--ink-secondary);
+  color: rgba(255, 255, 255, 0.8);
   position: relative;
   transition: color 0.2s ease;
 }
 
+#navbar.scrolled .nav-links a {
+  color: var(--ink-secondary);
+}
+
 .nav-links a:hover,
 .nav-links a.nav-active {
+  color: #facc15;
+}
+
+#navbar.scrolled .nav-links a:hover,
+#navbar.scrolled .nav-links a.nav-active {
   color: var(--ink-carbon);
 }
 
@@ -288,25 +310,35 @@ section {
   font-family: var(--font-typewriter) !important;
   font-size: 0.74rem !important;
   font-weight: 600 !important;
-  padding: 6px 14px;
-  background-color: var(--paper-card);
-  border: 1px solid var(--paper-edge);
-  color: var(--ink-carbon) !important;
+  padding: 5px 12px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff !important;
   border-radius: 2px;
   transition: all 0.2s ease !important;
 }
 
+#navbar.scrolled .nav-admin-link {
+  background-color: var(--paper-card);
+  border-color: var(--paper-edge);
+  color: var(--ink-carbon) !important;
+}
+
 .nav-admin-link:hover {
-  background-color: var(--ink-carbon);
-  color: var(--paper-cream) !important;
-  border-color: var(--ink-carbon);
+  background-color: var(--film-amber) !important;
+  color: #12100e !important;
+  border-color: var(--film-amber) !important;
 }
 
 .hamburger {
   display: none;
-  color: var(--ink-carbon);
+  color: #ffffff;
   cursor: pointer;
   padding: 8px;
+}
+
+#navbar.scrolled .hamburger {
+  color: var(--ink-carbon);
 }
 
 /* Mobile Menu */
@@ -1163,30 +1195,48 @@ section {
   position: relative;
   width: 100%;
   height: 100vh;
-  min-height: 580px;
-  background-color: #0b0f19;
+  min-height: 540px;
+  background: radial-gradient(ellipse at 50% 30%, #172554 0%, #0f172a 50%, #020617 100%);
   overflow: hidden;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  touch-action: none; /* Mencegah layar HP scroll saat menggeser joystick! */
   border-bottom: 3px solid var(--film-amber);
+}
+
+.retro-game-arena::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 140px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(250, 204, 21, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 2;
 }
 
 #soccerGameCanvas {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 100%;
   height: 100%;
-  z-index: 1;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* KUNCI: MENCEGAH DISTORSI & TAMPILAN GEPENG/LONJONG DI HP */
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  z-index: 1;
 }
 
 /* 1. HUD Papan Skor Mini (Sleek, Kompak di Atas, Tidak Menghalangi Lapangan) */
 .arcade-hud-mini {
   position: absolute;
-  top: 14px;
+  top: 72px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 15;
@@ -1621,7 +1671,7 @@ section {
     min-height: 520px;
   }
   .arcade-hud-mini {
-    top: 10px;
+    top: 68px;
     padding: 0 10px;
     gap: 8px;
     height: 30px;
