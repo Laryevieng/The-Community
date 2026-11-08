@@ -1,42 +1,51 @@
 // ============================================================
-//  js/retro-bg.js — Game Retro Sepak Bola & Mario Interaktif
-//  Dua Gawang · Cetak Gol · Kendali Keyboard & Touch · 60 FPS
+//  js/retro-bg.js — REAL RETRO ARCADE SOCCER STADIUM ENGINE
+//  Dangerous Boys Stadium · 2.5D Real Pitch · 2 Gawang & Kiper
+//  Arcade Round Buttons · Fisika Pantul & Gol Realistis · 60 FPS
 // ============================================================
 
 (function () {
   'use strict';
 
-  // Resolusi virtual internal kecil (480x270) untuk performa 60 FPS tanpa beban CPU
-  const V_WIDTH = 480;
-  const V_HEIGHT = 270;
+  // Resolusi virtual retro arcade (640x360) — tajam, proporsional, 0% lag
+  const V_WIDTH = 640;
+  const V_HEIGHT = 360;
+
+  // Batas area lapangan hijau
+  const PITCH_TOP = 70;
+  const PITCH_BOTTOM = 330;
+  const PITCH_LEFT = 36;
+  const PITCH_RIGHT = 604;
+
+  // Dimensi gawang kiri dan kanan
+  const GOAL_Y_TOP = 145;
+  const GOAL_Y_BOTTOM = 255;
+  const GOAL_DEPTH = 32;
 
   let canvas = null;
   let ctx = null;
   let animId = null;
   let isPaused = false;
-  let isPlayMode = true; // Mode interaktif dimainkan pengguna
   let currentMode = 'soccer'; // 'soccer' atau 'mario'
-
-  // Waktu frame
   let lastTime = 0;
 
-  // Skor Pertandingan
+  // Skor & Timer Pertandingan
   let scorePlayer = 0; // Dangerous Boys (BJR-18)
-  let scoreCPU = 0;    // Tim Lawan (RIVAL)
+  let scoreCPU = 0;    // Banjar Rival FC
+  let matchTime = 90 * 60; // 90 menit virtual (menghitung mundur)
   let goalCelebrationTimer = 0;
-  let goalScorer = ''; // 'player' atau 'cpu'
+  let goalScorer = ''; // 'player' | 'cpu'
   let goalParticles = [];
+  let whistleFlash = 0;
 
-  // Audio Sintesis Retro (Web Audio API - 0 Berkas Eksternal, 0 Lag)
+  // Audio Sintesis Retro (Web Audio API)
   let audioCtx = null;
   let soundEnabled = true;
 
   function initAudio() {
     if (!audioCtx) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtx = new AudioContextClass();
-      }
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) audioCtx = new AudioCtx();
     }
     if (audioCtx && audioCtx.state === 'suspended') {
       audioCtx.resume();
@@ -53,45 +62,61 @@
       gain.connect(audioCtx.destination);
 
       if (type === 'kick') {
-        // Suara tendangan bola thud
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(140, now);
-        osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.1);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
         osc.start(now);
-        osc.stop(now + 0.08);
+        osc.stop(now + 0.1);
+      } else if (type === 'shoot') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.16);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
+        osc.start(now);
+        osc.stop(now + 0.16);
       } else if (type === 'goal') {
-        // Nada perayaan gol retro (Arpeggio C-E-G-C)
-        const notes = [261.63, 329.63, 392.00, 523.25];
-        notes.forEach((freq, idx) => {
+        // Melodi kemenangan gol 8-bit
+        const freqs = [330, 392, 493.88, 587.33, 659.25, 783.99];
+        freqs.forEach((f, idx) => {
           const o = audioCtx.createOscillator();
           const g = audioCtx.createGain();
           o.type = 'square';
-          o.frequency.setValueAtTime(freq, now + idx * 0.1);
-          g.gain.setValueAtTime(0.2, now + idx * 0.1);
-          g.gain.linearRampToValueAtTime(0.01, now + (idx + 1) * 0.1);
+          o.frequency.setValueAtTime(f, now + idx * 0.08);
+          g.gain.setValueAtTime(0.22, now + idx * 0.08);
+          g.gain.linearRampToValueAtTime(0.01, now + (idx + 1) * 0.08);
           o.connect(g);
           g.connect(audioCtx.destination);
-          o.start(now + idx * 0.1);
-          o.stop(now + (idx + 1) * 0.1);
+          o.start(now + idx * 0.08);
+          o.stop(now + (idx + 1) * 0.08);
         });
-      } else if (type === 'jump') {
-        // Nada lompatan retro Mario/pemain
+      } else if (type === 'whistle') {
+        // Peluit wasit retro
         osc.type = 'square';
-        osc.frequency.setValueAtTime(160, now);
-        osc.frequency.exponentialRampToValueAtTime(460, now + 0.12);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.setValueAtTime(1800, now + 0.08);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
         osc.start(now);
-        osc.stop(now + 0.12);
+        osc.stop(now + 0.25);
+      } else if (type === 'save') {
+        // Kiper menepis bola
+        osc.type = 'noise' in osc ? 'noise' : 'square';
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
       }
     } catch {
-      // Abaikan bila audio dicegah autoplay browser
+      // Audio fallback aman
     }
   }
 
-  // ── PALET PIXEL RETRO ─────────────────────────────────────────
+  // ── PALET RETRO ARCADE ─────────────────────────────────────────
   const PALETTE = {
     '.': null,
     'K': '#181512', // Hitam Karbon
@@ -99,11 +124,11 @@
     'P': '#fdcca0', // Kulit Peach
     'G': '#c27827', // Emas Jersey Dangerous Boys
     'R': '#d63220', // Merah Retro
-    'B': '#2255cc', // Biru Retro
-    'Y': '#f7b500', // Kuning Koin
-    'O': '#6b533a', // Cokelat
-    'L': '#48a048', // Hijau Lapangan
-    'M': '#e09840', // Amber
+    'B': '#1d4ed8', // Biru Retro Jersey Lawan
+    'Y': '#facc15', // Kuning Koin
+    'O': '#78350f', // Rambut Cokelat
+    'L': '#15803d', // Hijau Kiper
+    'S': '#64748b', // Abu-Abu Sepatu
   };
 
   function drawPixelMatrix(context, matrix, startX, startY, pixelSize = 2, flipX = false) {
@@ -123,122 +148,115 @@
     }
   }
 
-  // ── MATRIKS SPRITE BITMAP ────────────────────────────────────
+  // ── SPRITE PIXEL ART KARAKTER (12x14 PIXELS) ─────────────────
 
-  // Pemain 1: Dangerous Boys (Jersey Emas BJR-18)
+  // 1. Pemain Dangerous Boys (Jersey Emas BJR-18)
   const SPRITE_P1_RUN_1 = [
-    "....KKKKK....",
-    "...KKKKKKK...",
-    "...PPPPPPP...",
-    "...P.K.K.P...",
-    "...PPPPPPP...",
-    "....GGGGG....",
-    "...GGGGGGG...",
-    "...GKKKKKG...",
-    "...GGGGGGG...",
-    "....KK.KK....",
-    "....KK.KK....",
-    "...RR...RR...",
-    "...RR...RR...",
+    "...OOOOOO...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "...GGGGGG...",
+    "..GGKKKKGG..",
+    "..GGGGGGGG..",
+    "...GGGGGG...",
+    "...KK..KK...",
+    "...KK..KK...",
+    "..RR....RR..",
+    "..RR....RR..",
   ];
 
   const SPRITE_P1_RUN_2 = [
-    "....KKKKK....",
-    "...KKKKKKK...",
-    "...PPPPPPP...",
-    "...P.K.K.P...",
-    "...PPPPPPP...",
-    "....GGGGG....",
-    "...GGGGGGG...",
-    "...GKKKKKG...",
-    "...GGGGGGG...",
-    ".....KK.KK...",
-    "....KK...KK..",
-    "...RR.....RR.",
-    "...RR......RR",
+    "...OOOOOO...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "...GGGGGG...",
+    "..GGKKKKGG..",
+    "..GGGGGGGG..",
+    "...GGGGGG...",
+    "....KK.KK...",
+    "...KK...KK..",
+    "..RR.....RR.",
+    "..RR......RR",
   ];
 
   const SPRITE_P1_KICK = [
-    "....KKKKK....",
-    "...KKKKKKK...",
-    "...PPPPPPP...",
-    "...P.K.K.P...",
-    "...PPPPPPP...",
-    "....GGGGG....",
-    "...GGGGGGGG..",
-    "...GKKKKKG...",
-    "....GGGGG....",
-    "....KK..KK...",
-    "....KK...KKK.",
-    "...RR.....RRR",
+    "...OOOOOO...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "...GGGGGG...",
+    "..GGGGGGGGG.",
+    "..GGKKKKGG..",
+    "...GGGGGG...",
+    "...KK...KK..",
+    "..KK.....KK.",
+    ".RR.......RR",
   ];
 
   const SPRITE_P1_CELEBRATE = [
-    ".RR.....RR...",
-    ".RR.KKK.RR...",
-    "..KKKKKKK....",
-    "...PPPPPPP...",
-    "...P.K.K.P...",
-    "...PPPPPPP...",
-    "....GGGGG....",
-    "...GGGGGGG...",
-    "...GKKKKKG...",
-    "....GGGGG....",
-    "....KK.KK....",
-    "....KK.KK....",
-    "...RR...RR...",
+    ".RR....RR...",
+    ".RR.OO.RR...",
+    "...OOOOOO...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "...GGGGGG...",
+    "..GGGGGGGG..",
+    "..GGKKKKGG..",
+    "...GGGGGG...",
+    "...KK..KK...",
+    "..RR....RR..",
   ];
 
-  // Pemain 2: Lawan Lapangan (Jersey Putih/Biru)
-  const SPRITE_P2_RUN_1 = [
-    "....OOOOO....",
-    "...OOOOOOO...",
-    "...PPPPPPP...",
-    "...P.K.K.P...",
-    "...PPPPPPP...",
-    "....WWWWW....",
-    "...WWWWWWW...",
-    "...WBBBBBW...",
-    "...WWWWWWW...",
-    "....BB.BB....",
-    "....BB.BB....",
-    "...KK...KK...",
-    "...KK...KK...",
+  // 2. Pemain Lawan (Jersey Biru / Banjar Rival FC)
+  const SPRITE_OPP_RUN_1 = [
+    "...KKKKKK...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "...BBBBBB...",
+    "..BBWWWWBB..",
+    "..BBBBBBBB..",
+    "...BBBBBB...",
+    "...WW..WW...",
+    "...WW..WW...",
+    "..KK....KK..",
+    "..KK....KK..",
   ];
 
-  const SPRITE_P2_RUN_2 = [
-    "....OOOOO....",
-    "...OOOOOOO...",
-    "...PPPPPPP...",
-    "...P.K.K.P...",
-    "...PPPPPPP...",
-    "....WWWWW....",
-    "...WWWWWWW...",
-    "...WBBBBBW...",
-    "...WWWWWWW...",
-    ".....BB.BB...",
-    "....BB...BB..",
-    "...KK.....KK.",
-    "...KK......KK",
+  const SPRITE_OPP_RUN_2 = [
+    "...KKKKKK...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "...BBBBBB...",
+    "..BBWWWWBB..",
+    "..BBBBBBBB..",
+    "...BBBBBB...",
+    "....WW.WW...",
+    "...WW...WW..",
+    "..KK.....KK.",
+    "..KK......KK",
   ];
 
-  // Kiper Lawan (Kuningan/Hijau)
+  // 3. Kiper (Jersey Hijau Terang)
   const SPRITE_GK = [
-    "....KKKKK....",
-    "...KKKKKKK...",
-    "...PPPPPPP...",
-    "...P.K.K.P...",
-    "...PPPPPPP...",
-    "....LLLLL....",
-    "..LLLLLLLLL..",
-    "..LLKKKKKLL..",
-    "..LLLLLLLLL..",
-    "....KK.KK....",
-    "...KKK.KKK...",
-    "...YY...YY...",
+    "...KKKKKK...",
+    "...PPPPPP...",
+    "...P.K.KP...",
+    "...PPPPPP...",
+    "..LLLLLLLL..",
+    ".LLLLKKLLLL.",
+    "..LLLLLLLL..",
+    "...LLLLLL...",
+    "...KK..KK...",
+    "..YY....YY..",
+    "..YY....YY..",
   ];
 
-  // Bola Sepak 8x8
+  // 4. Bola Sepak Retro (8x8)
   const SPRITE_BALL = [
     "..KKKK..",
     ".KWWWWK.",
@@ -250,8 +268,8 @@
     "..KKKK..",
   ];
 
-  // Mario Bros 8-Bit
-  const SPRITE_MARIO_STAND = [
+  // 5. Mario Bros Retro
+  const SPRITE_MARIO_RUN_1 = [
     "....RRRRR....",
     "...RRRRRRRRR.",
     "...OORRPPO...",
@@ -269,7 +287,7 @@
     ".OOOO..OOOO..",
   ];
 
-  const SPRITE_MARIO_RUN = [
+  const SPRITE_MARIO_RUN_2 = [
     "....RRRRR....",
     "...RRRRRRRRR.",
     "...OORRPPO...",
@@ -286,662 +304,648 @@
     "..OOOO...OOO.",
   ];
 
-  const SPRITE_MARIO_JUMP = [
-    "....RRRRR....",
-    "...RRRRRRRRR.",
-    "...OORRPPO...",
-    "..OPOOPPPO...",
-    "..OPOOOPPPO..",
-    "..OOPPPPPOO..",
-    "....PPPPPPP..",
-    ".PPRRBRRR....",
-    ".PPRRBRRRBR..",
-    ".RRRRBBBBRRR.",
-    "...RBBYBBRRP.",
-    "...BBBBBB....",
-    "..OOO..OOO...",
-    ".OOOO...OOOO.",
-  ];
+  // ── ENTITAS PERTANDINGAN ─────────────────────────────────────
 
-  const SPRITE_BLOCK = [
-    "YYYYYYYYYYYYY",
-    "YOOOOOOOOOOOY",
-    "YOKKYYYYYKOOY",
-    "YOKKYKKYYKOOY",
-    "YOKKYKKYYKOOY",
-    "YOOOYYYKKKOOY",
-    "YOOOYYKKKOOOY",
-    "YOOOYYKKKOOOY",
-    "YOOOOOOOOOOOY",
-    "YOOOYYKKKOOOY",
-    "YOOOYYKKKOOOY",
-    "YOOOOOOOOOOOY",
-    "YYYYYYYYYYYYY",
-  ];
-
-  // ── ENTITAS & KENDALI KEYBOARD ──────────────────────────────
-  const keys = {
+  // Status Input Kontrol
+  const input = {
     left: false,
     right: false,
-    jump: false,
-    kick: false,
+    up: false,
+    down: false,
+    shoot: false,
+    pass: false,
+    sprint: false,
   };
 
-  // Bola
+  // Bola Sepak dengan Fisika 2.5D (x, y, z ketinggian)
   const ball = {
-    x: 240,
-    y: 220,
+    x: V_WIDTH / 2,
+    y: (PITCH_TOP + PITCH_BOTTOM) / 2,
+    z: 0, // Ketinggian di atas tanah
     vx: 0,
     vy: 0,
-    groundY: 228,
-    radius: 7,
+    vz: 0,
     rotation: 0,
+    radius: 6,
     reset() {
-      this.x = 240;
-      this.y = 210;
+      this.x = V_WIDTH / 2;
+      this.y = (PITCH_TOP + PITCH_BOTTOM) / 2;
+      this.z = 0;
       this.vx = 0;
       this.vy = 0;
+      this.vz = 0;
       this.rotation = 0;
     }
   };
 
-  // Pemain 1 (Dangerous Boys / Pemain Anda)
-  const player1 = {
-    x: 120,
-    y: 204,
-    vx: 0,
-    vy: 0,
-    groundY: 204,
-    isJumping: false,
-    state: 'run',
-    frame: 0,
-    animTimer: 0,
-    facing: 1,
-    kickTimer: 0,
-    celebrateTimer: 0,
-  };
-
-  // Pemain 2 (Lawan Bergerak / Bertahan)
-  const player2 = {
-    x: 320,
-    y: 204,
-    vx: 0,
-    vy: 0,
-    groundY: 204,
-    isJumping: false,
-    state: 'run',
-    frame: 0,
-    animTimer: 0,
-    facing: -1,
-    kickTimer: 0,
-  };
-
-  // Kiper Lawan (Menjaga Gawang Kanan)
-  const goalkeeper = {
-    x: 432,
-    y: 204,
-    vy: 0.8,
-    minY: 196,
-    maxY: 218,
-    state: 'stand',
-  };
-
-  // Mario Bros
-  const mario = {
-    x: 60,
+  // Pemain Anda: BJR-18 Dangerous Boys (Penyerang No. 10)
+  const player = {
+    x: 220,
     y: 200,
-    vx: 1.4,
+    vx: 0,
     vy: 0,
-    groundY: 200,
-    isJumping: false,
+    speed: 2.2,
+    facing: 1, // 1 = kanan, -1 = kiri
+    state: 'idle', // 'idle' | 'run' | 'kick' | 'celebrate'
     frame: 0,
     animTimer: 0,
-    facing: 1,
+    kickTimer: 0,
   };
 
-  const mysteryBlock = {
-    x: 240,
+  // Teman Setim (AI Dangerous Boys No. 7)
+  const teammate = {
+    x: 180,
     y: 130,
-    bumpY: 0,
-    coinY: 0,
-    coinActive: false,
+    vx: 0,
+    vy: 0,
+    speed: 1.8,
+    facing: 1,
+    frame: 0,
+    animTimer: 0,
   };
 
-  // ── INISIALISASI GAME ENGINE ────────────────────────────────
-  function initGameEngine() {
-    canvas = document.getElementById('retroCanvas');
-    if (!canvas) {
-      canvas = document.createElement('canvas');
-      canvas.id = 'retroCanvas';
-      document.body.prepend(canvas);
-    }
+  // Bek Lawan (AI Banjar Rival FC No. 4)
+  const opponent = {
+    x: 420,
+    y: 200,
+    vx: 0,
+    vy: 0,
+    speed: 1.7,
+    facing: -1,
+    frame: 0,
+    animTimer: 0,
+    tackleTimer: 0,
+  };
 
-    ctx = canvas.getContext('2d', { alpha: true });
+  // Kiper Kanan (Kiper Lawan)
+  const goalieRight = {
+    x: 590,
+    y: 200,
+    vy: 1.2,
+    minY: GOAL_Y_TOP + 10,
+    maxY: GOAL_Y_BOTTOM - 10,
+    diveTimer: 0,
+  };
+
+  // Kiper Kiri (Kiper Dangerous Boys)
+  const goalieLeft = {
+    x: 46,
+    y: 200,
+    vy: 1.0,
+    minY: GOAL_Y_TOP + 10,
+    maxY: GOAL_Y_BOTTOM - 10,
+    diveTimer: 0,
+  };
+
+  // ── INISIALISASI CANVAS & KONTROLER ─────────────────────────
+  function initGame() {
+    canvas = document.getElementById('soccerGameCanvas');
+    if (!canvas) return;
+
+    ctx = canvas.getContext('2d', { alpha: false });
     canvas.width = V_WIDTH;
     canvas.height = V_HEIGHT;
     ctx.imageSmoothingEnabled = false;
 
-    // Pasang tombol kontroler on-screen untuk mobile dan desktop
-    createRetroGameWidget();
+    // Pasang tombol kontroler arcade nyata (D-Pad bulat & Tombol aksi bulat)
+    setupArcadeControls();
 
     // Event listener keyboard
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Resize canvas
-    window.addEventListener('resize', handleResize);
-    handleResize();
+    // Resize
+    window.addEventListener('resize', handleCanvasResize);
+    handleCanvasResize();
 
-    // Mulai animasi
+    // Loop
     lastTime = performance.now();
     animId = requestAnimationFrame(gameLoop);
   }
 
-  function handleResize() {
-    if (canvas) {
-      canvas.style.width = '100vw';
-      canvas.style.height = '100vh';
+  function handleCanvasResize() {
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (parent) {
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
     }
   }
 
-  // ── PENANGANAN INPUT KEYBOARD ───────────────────────────────
+  // ── KEYBOARD HANDLERS ───────────────────────────────────────
   function handleKeyDown(e) {
     initAudio();
 
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-      keys.left = true;
-    } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-      keys.right = true;
-    } else if (e.code === 'ArrowUp' || e.code === 'KeyW') {
-      keys.jump = true;
-      executePlayerJump();
-    } else if (e.code === 'Space' || e.code === 'KeyX' || e.code === 'Enter') {
-      keys.kick = true;
-      executePlayerKick();
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') input.up = true;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') input.down = true;
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') input.sprint = true;
+
+    if (e.code === 'Space' || e.code === 'KeyK') {
+      input.shoot = true;
+      executeShoot();
+    }
+    if (e.code === 'KeyJ' || e.code === 'KeyX') {
+      input.pass = true;
+      executePass();
     }
   }
 
   function handleKeyUp(e) {
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
-    if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.jump = false;
-    if (e.code === 'Space' || e.code === 'KeyX' || e.code === 'Enter') keys.kick = false;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') input.up = false;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') input.down = false;
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') input.sprint = false;
+    if (e.code === 'Space' || e.code === 'KeyK') input.shoot = false;
+    if (e.code === 'KeyJ' || e.code === 'KeyX') input.pass = false;
   }
 
-  function executePlayerJump() {
-    if (currentMode === 'soccer') {
-      if (!player1.isJumping) {
-        player1.vy = -4.8;
-        player1.isJumping = true;
-        playRetroSound('jump');
-      }
-    } else {
-      if (!mario.isJumping) {
-        mario.vy = -5.5;
-        mario.isJumping = true;
-        playRetroSound('jump');
-      }
+  // ── AKSI MENEMBAK & MENGOPER BOLA ────────────────────────────
+  function executeShoot() {
+    const dist = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
+    if (dist < 26) {
+      player.state = 'kick';
+      player.kickTimer = 0.25;
+
+      // Arah tembakan menuju gawang kanan (gawang lawan)
+      const targetGoalX = PITCH_RIGHT + 10;
+      const targetGoalY = GOAL_Y_TOP + (GOAL_Y_BOTTOM - GOAL_Y_TOP) * (0.2 + Math.random() * 0.6);
+      const angle = Math.atan2(targetGoalY - ball.y, targetGoalX - ball.x);
+
+      const power = input.sprint ? 6.8 : 5.4;
+      ball.vx = Math.cos(angle) * power;
+      ball.vy = Math.sin(angle) * power * 0.6;
+      ball.vz = 3.2 + Math.random() * 2.0; // Angkat bola melambung di udara
+
+      playRetroSound('shoot');
     }
   }
 
-  function executePlayerKick() {
-    if (currentMode !== 'soccer') return;
+  function executePass() {
+    const dist = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
+    if (dist < 26) {
+      player.state = 'kick';
+      player.kickTimer = 0.2;
 
-    player1.state = 'kick';
-    player1.kickTimer = 0.22;
+      // Oper mendatar ke arah teman setim (teammate)
+      const angle = Math.atan2(teammate.y - ball.y, teammate.x - ball.x);
+      const power = 4.2;
+      ball.vx = Math.cos(angle) * power;
+      ball.vy = Math.sin(angle) * power;
+      ball.vz = 0.5;
 
-    // Cek jarak pemain ke bola untuk menendang
-    const distToBall = Math.hypot(player1.x + 8 - ball.x, player1.y + 12 - ball.y);
-    if (distToBall < 24) {
-      // Tembakan kencang ke arah hadap pemain menuju gawang lawan
-      const shootPowerX = player1.facing === 1 ? 4.5 + Math.random() * 1.5 : -4.5;
-      const shootPowerY = player1.isJumping ? 1.5 : -(2.2 + Math.random() * 2.0); // Tendangan melambung atau menukik
-
-      ball.vx = shootPowerX;
-      ball.vy = shootPowerY;
       playRetroSound('kick');
     }
   }
 
-  // ── UPDATE FISIKA PERTANDINGAN SEPAK BOLA ────────────────────
-  function updateSoccer(dt) {
+  // ── UPDATE LOGIKA GAME (60 FPS) ─────────────────────────────
+  function updateGame(dt) {
     // 1. Partikel Selebrasi Gol
     for (let i = goalParticles.length - 1; i >= 0; i--) {
       const p = goalParticles[i];
       p.x += p.vx * 60 * dt;
       p.y += p.vy * 60 * dt;
-      p.vy += 4.0 * dt;
+      p.vy += 3.5 * dt;
       p.life -= dt;
       if (p.life <= 0) goalParticles.splice(i, 1);
     }
 
-    // Jeda selebrasi gol
+    if (whistleFlash > 0) whistleFlash -= dt;
+
+    // Saat perayaan gol, bola dan pemain jeda sejenak
     if (goalCelebrationTimer > 0) {
       goalCelebrationTimer -= dt;
       if (goalCelebrationTimer <= 0) {
-        ball.reset();
-        player1.x = 120;
-        player1.y = player1.groundY;
-        player2.x = 320;
-        player2.y = player2.groundY;
+        resetKickoff();
       }
       return;
     }
 
-    // 2. Kendali Pemain 1 (Pengguna / Dangerous Boys)
-    if (isPlayMode) {
-      if (keys.left) {
-        player1.vx = -2.2;
-        player1.facing = -1;
-      } else if (keys.right) {
-        player1.vx = 2.2;
-        player1.facing = 1;
-      } else {
-        player1.vx = 0;
-      }
-    } else {
-      // Mode otomatis bila pengguna tidak sedang menekan kontrol
-      const dxToBall = (ball.x - 12) - player1.x;
-      if (Math.abs(dxToBall) > 4) {
-        player1.facing = dxToBall > 0 ? 1 : -1;
-        player1.vx = Math.sign(dxToBall) * 1.6;
-      } else {
-        player1.vx = 0;
-      }
-    }
+    // Hitung waktu pertandingan mundur
+    if (matchTime > 0) matchTime -= dt * 25; // 1 detik dunia nyata = ~25 detik pertandingan
 
-    // Lompatan & Gravitasi Pemain 1
-    if (player1.isJumping) {
-      player1.vy += 12 * dt;
-      player1.y += player1.vy * 60 * dt;
-      if (player1.y >= player1.groundY) {
-        player1.y = player1.groundY;
-        player1.vy = 0;
-        player1.isJumping = false;
-      }
-    }
+    // 2. Pergerakan Pemain Anda (Dangerous Boys)
+    const currentSpeed = (input.sprint ? player.speed * 1.5 : player.speed);
+    player.vx = 0;
+    player.vy = 0;
 
-    player1.x += player1.vx * 60 * dt;
-    player1.x = Math.max(34, Math.min(V_WIDTH - 44, player1.x)); // Batas gawang
+    if (input.left) { player.vx = -currentSpeed; player.facing = -1; }
+    if (input.right) { player.vx = currentSpeed; player.facing = 1; }
+    if (input.up) { player.vy = -currentSpeed * 0.75; }
+    if (input.down) { player.vy = currentSpeed * 0.75; }
+
+    player.x += player.vx * 60 * dt;
+    player.y += player.vy * 60 * dt;
+
+    // Batasi pemain di dalam garis lapangan
+    player.x = Math.max(PITCH_LEFT + 8, Math.min(PITCH_RIGHT - 24, player.x));
+    player.y = Math.max(PITCH_TOP + 4, Math.min(PITCH_BOTTOM - 24, player.y));
 
     // Animasi langkah kaki
-    if (Math.abs(player1.vx) > 0.1) {
-      player1.animTimer += dt;
-      if (player1.animTimer > 0.12) {
-        player1.frame = (player1.frame + 1) % 2;
-        player1.animTimer = 0;
+    if (Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1) {
+      player.animTimer += dt;
+      if (player.animTimer > (input.sprint ? 0.08 : 0.13)) {
+        player.frame = (player.frame + 1) % 2;
+        player.animTimer = 0;
       }
     }
 
-    if (player1.kickTimer > 0) {
-      player1.kickTimer -= dt;
-      if (player1.kickTimer <= 0) player1.state = 'run';
+    if (player.kickTimer > 0) {
+      player.kickTimer -= dt;
+      if (player.kickTimer <= 0) player.state = 'idle';
     }
 
-    // 3. AI Pemain 2 (Lawan Menghadang dan Mengoper)
-    const target2X = ball.x + 12;
-    const dx2 = target2X - player2.x;
-    if (Math.abs(dx2) > 6) {
-      player2.facing = dx2 > 0 ? 1 : -1;
-      player2.x += Math.sign(dx2) * 1.5 * 60 * dt;
-      player2.animTimer += dt;
-      if (player2.animTimer > 0.14) {
-        player2.frame = (player2.frame + 1) % 2;
-        player2.animTimer = 0;
-      }
-    }
+    // 3. AI Teman Setim (Membantu membuka ruang)
+    const targetTeammateX = player.x + 80;
+    const dxTm = targetTeammateX - teammate.x;
+    teammate.x += Math.sign(dxTm) * Math.min(Math.abs(dxTm), teammate.speed * 60 * dt);
+    teammate.x = Math.max(PITCH_LEFT + 20, Math.min(PITCH_RIGHT - 60, teammate.x));
 
-    // Tendangan AI Pemain 2 jika dekat bola
-    if (Math.abs(player2.x - (ball.x + 4)) < 14 && Math.abs(player2.y - ball.y) < 20) {
-      player2.state = 'kick';
-      player2.kickTimer = 0.2;
-      ball.vx = -(2.8 + Math.random() * 1.8);
-      ball.vy = -(1.5 + Math.random() * 2.2);
+    // 4. AI Bek Lawan (Menghadang Pemain & Mengejar Bola)
+    const targetDefX = ball.x > V_WIDTH / 2 ? ball.x + 14 : V_WIDTH / 2 + 60;
+    const targetDefY = ball.y;
+    const angleDef = Math.atan2(targetDefY - opponent.y, targetDefX - opponent.x);
+    opponent.vx = Math.cos(angleDef) * opponent.speed;
+    opponent.vy = Math.sin(angleDef) * opponent.speed * 0.7;
+
+    opponent.x += opponent.vx * 60 * dt;
+    opponent.y += opponent.vy * 60 * dt;
+    opponent.facing = opponent.vx > 0 ? 1 : -1;
+
+    // Sapuan/Tackle Lawan jika dekat bola
+    const distOppBall = Math.hypot(opponent.x + 8 - ball.x, opponent.y + 12 - ball.y);
+    if (distOppBall < 18) {
+      // Lawan membuang bola ke arah kiri (menyerang ke gawang Dangerous Boys)
+      ball.vx = -(3.8 + Math.random() * 1.8);
+      ball.vy = (Math.random() - 0.5) * 3.2;
+      ball.vz = 2.0;
       playRetroSound('kick');
     }
 
-    if (player2.kickTimer > 0) {
-      player2.kickTimer -= dt;
-      if (player2.kickTimer <= 0) player2.state = 'run';
-    }
-    player2.x = Math.max(34, Math.min(V_WIDTH - 44, player2.x));
-
-    // 4. AI Kiper Lawan (Menjaga Garis Gawang Kanan)
-    goalkeeper.y += goalkeeper.vy * 60 * dt;
-    if (goalkeeper.y >= goalkeeper.maxY || goalkeeper.y <= goalkeeper.minY) {
-      goalkeeper.vy = -goalkeeper.vy;
+    // 5. AI Kiper Lawan (Gawang Kanan)
+    goalieRight.y += goalieRight.vy * 60 * dt;
+    if (goalieRight.y >= goalieRight.maxY || goalieRight.y <= goalieRight.minY) {
+      goalieRight.vy = -goalieRight.vy;
     }
 
-    // Blok Kiper saat bola mendekat ke gawang kanan
-    if (ball.x >= 424 && ball.x <= 444 && Math.abs(ball.y - (goalkeeper.y + 12)) < 24) {
-      ball.vx = -(3.2 + Math.random() * 1.2); // Tepis bola keluar
-      ball.vy = (Math.random() - 0.5) * 3;
-      playRetroSound('kick');
+    // Kiper menepis tembakan ke gawang kanan
+    if (
+      ball.x >= PITCH_RIGHT - 24 &&
+      ball.x <= PITCH_RIGHT + 6 &&
+      ball.y >= GOAL_Y_TOP - 10 &&
+      ball.y <= GOAL_Y_BOTTOM + 10 &&
+      Math.abs(ball.y - (goalieRight.y + 12)) < 30
+    ) {
+      ball.vx = -(3.6 + Math.random() * 1.5);
+      ball.vy = (Math.random() - 0.5) * 4;
+      ball.vz = 2.2;
+      playRetroSound('save');
     }
 
-    // 5. Fisika Gerak Bola
-    ball.vy += 9.8 * dt * 1.4; // Gravitasi
+    // 6. AI Kiper Dangerous Boys (Gawang Kiri)
+    goalieLeft.y += goalieLeft.vy * 60 * dt;
+    if (goalieLeft.y >= goalieLeft.maxY || goalieLeft.y <= goalieLeft.minY) {
+      goalieLeft.vy = -goalieLeft.vy;
+    }
+
+    if (
+      ball.x <= PITCH_LEFT + 24 &&
+      ball.x >= PITCH_LEFT - 6 &&
+      Math.abs(ball.y - (goalieLeft.y + 12)) < 30
+    ) {
+      ball.vx = 3.6 + Math.random() * 1.5;
+      ball.vy = (Math.random() - 0.5) * 4;
+      ball.vz = 2.0;
+      playRetroSound('save');
+    }
+
+    // 7. Fisika Gerak Bola (2.5D dengan Ketinggian Z)
     ball.x += ball.vx * 60 * dt;
     ball.y += ball.vy * 60 * dt;
-    ball.rotation += ball.vx * dt * 6;
 
-    // Gesekan & Pantulan Tanah
-    if (ball.y >= ball.groundY) {
-      ball.y = ball.groundY;
-      ball.vy = -ball.vy * 0.65;
-      ball.vx *= 0.985;
-      if (Math.abs(ball.vy) < 0.2) ball.vy = 0;
+    // Ketinggian Z dan Gravitasi
+    if (ball.z > 0 || ball.vz !== 0) {
+      ball.vz -= 9.8 * dt * 1.2;
+      ball.z += ball.vz * 60 * dt;
+
+      if (ball.z <= 0) {
+        ball.z = 0;
+        ball.vz = -ball.vz * 0.55; // Pantulan lantai
+        if (Math.abs(ball.vz) < 0.4) ball.vz = 0;
+      }
     }
 
-    // Kontak Dribble Otomatis Pemain 1
-    const p1BallDist = Math.hypot(player1.x + 8 - ball.x, player1.y + 12 - ball.y);
-    if (p1BallDist < 14 && player1.kickTimer <= 0) {
-      // Dorong pelan bola ke depan mengikuti arah lari
-      ball.vx = player1.facing * (Math.abs(player1.vx) + 0.6);
-      if (ball.y >= ball.groundY - 4) ball.vy = -0.5;
+    // Gesekan rumput mendatar
+    ball.vx *= 0.985;
+    ball.vy *= 0.985;
+    ball.rotation += ball.vx * dt * 8;
+
+    // Dribble otomatis saat pemain berlari mendorong bola
+    const distP1Ball = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
+    if (distP1Ball < 18 && ball.z < 6 && player.kickTimer <= 0) {
+      ball.vx = player.facing * (Math.abs(player.vx) + 0.8);
+      ball.vy = player.vy * 0.9;
     }
 
-    // ── 6. DETEKSI GOL 2 GAWANG ──────────────────────────────────
-    // Gawang Kanan (Gawang Lawan - Sasaran Dangerous Boys)
-    if (ball.x >= 448 && ball.y >= 195 && ball.y <= 238) {
+    // ── 8. DETEKSI GOL REALISTIS ────────────────────────────────
+    // Gawang Kanan (GOL DANGEROUS BOYS!)
+    if (
+      ball.x >= PITCH_RIGHT &&
+      ball.x <= PITCH_RIGHT + GOAL_DEPTH &&
+      ball.y >= GOAL_Y_TOP &&
+      ball.y <= GOAL_Y_BOTTOM
+    ) {
       scorePlayer++;
-      triggerGoalCelebration('player');
+      triggerGoal('player');
       return;
     }
 
-    // Gawang Kiri (Gawang Dangerous Boys)
-    if (ball.x <= 28 && ball.y >= 195 && ball.y <= 238) {
+    // Gawang Kiri (GOL LAWAN)
+    if (
+      ball.x <= PITCH_LEFT &&
+      ball.x >= PITCH_LEFT - GOAL_DEPTH &&
+      ball.y >= GOAL_Y_TOP &&
+      ball.y <= GOAL_Y_BOTTOM
+    ) {
       scoreCPU++;
-      triggerGoalCelebration('cpu');
+      triggerGoal('cpu');
       return;
     }
 
-    // Pantulan tiang / mistar gawang
-    if (ball.x <= 28 && ball.y < 195) {
-      ball.x = 28;
-      ball.vx = Math.abs(ball.vx) * 0.85;
+    // Pantulan tiang gawang atas & bawah
+    if (ball.y < PITCH_TOP + 4) {
+      ball.y = PITCH_TOP + 4;
+      ball.vy = Math.abs(ball.vy) * 0.8;
+    } else if (ball.y > PITCH_BOTTOM - 4) {
+      ball.y = PITCH_BOTTOM - 4;
+      ball.vy = -Math.abs(ball.vy) * 0.8;
     }
-    if (ball.x >= 448 && ball.y < 195) {
-      ball.x = 448;
-      ball.vx = -Math.abs(ball.vx) * 0.85;
+
+    // Batas tepi kiri dan kanan selain jaring gawang
+    if ((ball.y < GOAL_Y_TOP || ball.y > GOAL_Y_BOTTOM)) {
+      if (ball.x <= PITCH_LEFT) {
+        ball.x = PITCH_LEFT;
+        ball.vx = Math.abs(ball.vx) * 0.8;
+      } else if (ball.x >= PITCH_RIGHT) {
+        ball.x = PITCH_RIGHT;
+        ball.vx = -Math.abs(ball.vx) * 0.8;
+      }
     }
   }
 
-  function triggerGoalCelebration(team) {
-    goalCelebrationTimer = 2.4;
+  function triggerGoal(team) {
+    goalCelebrationTimer = 2.8;
     goalScorer = team;
-    playRetroSound('goal');
+    whistleFlash = 0.5;
+    playRetroSound('whistle');
+    setTimeout(() => playRetroSound('goal'), 200);
 
     if (team === 'player') {
-      player1.state = 'celebrate';
+      player.state = 'celebrate';
     }
 
-    // Buat 30 partikel konfeti retro
+    // Buat 45 partikel konfeti berhamburan
     goalParticles = [];
-    for (let i = 0; i < 35; i++) {
+    const goalX = team === 'player' ? PITCH_RIGHT + 12 : PITCH_LEFT - 12;
+    for (let i = 0; i < 45; i++) {
       goalParticles.push({
-        x: team === 'player' ? 450 : 30,
-        y: 210,
-        vx: (Math.random() - 0.5) * 8 + (team === 'player' ? -3 : 3),
+        x: goalX,
+        y: GOAL_Y_TOP + Math.random() * (GOAL_Y_BOTTOM - GOAL_Y_TOP),
+        vx: (Math.random() - 0.5) * 8 + (team === 'player' ? -4 : 4),
         vy: -Math.random() * 6 - 2,
-        color: ['#c27827', '#d63220', '#f7b500', '#ffffff', '#2255cc'][Math.floor(Math.random() * 5)],
-        life: 2.0,
+        color: ['#c27827', '#facc15', '#ffffff', '#1d4ed8', '#d63220'][Math.floor(Math.random() * 5)],
+        life: 2.5,
       });
     }
   }
 
-  // ── UPDATE FISIKA: MARIO BROS ────────────────────────────────
-  function updateMario(dt) {
-    if (isPlayMode) {
-      if (keys.left) {
-        mario.vx = -2.2;
-        mario.facing = -1;
-      } else if (keys.right) {
-        mario.vx = 2.2;
-        mario.facing = 1;
-      } else {
-        mario.vx = 0;
-      }
-    } else {
-      mario.vx = 1.4 * mario.facing;
-      if (mario.x >= V_WIDTH - 40) mario.facing = -1;
-      if (mario.x <= 20) mario.facing = 1;
-    }
-
-    // Animasi lari
-    if (Math.abs(mario.vx) > 0.1) {
-      mario.animTimer += dt;
-      if (mario.animTimer > 0.12) {
-        mario.frame = (mario.frame + 1) % 2;
-        mario.animTimer = 0;
-      }
-    }
-
-    mario.x += mario.vx * 60 * dt;
-    mario.x = Math.max(10, Math.min(V_WIDTH - 30, mario.x));
-
-    // Fisika lompat
-    if (mario.isJumping) {
-      mario.vy += 12 * dt;
-      mario.y += mario.vy * 60 * dt;
-
-      // Benturan dengan balok [?]
-      if (
-        mario.y <= mysteryBlock.y + 26 &&
-        mario.y >= mysteryBlock.y &&
-        Math.abs(mario.x - (mysteryBlock.x - 4)) < 18 &&
-        mario.vy < 0
-      ) {
-        mario.vy = 1.8;
-        mysteryBlock.bumpY = -6;
-        mysteryBlock.coinActive = true;
-        mysteryBlock.coinY = mysteryBlock.y - 10;
-        playRetroSound('kick');
-      }
-
-      if (mario.y >= mario.groundY) {
-        mario.y = mario.groundY;
-        mario.vy = 0;
-        mario.isJumping = false;
-      }
-    }
-
-    if (mysteryBlock.bumpY < 0) {
-      mysteryBlock.bumpY += 30 * dt;
-      if (mysteryBlock.bumpY > 0) mysteryBlock.bumpY = 0;
-    }
-
-    if (mysteryBlock.coinActive) {
-      mysteryBlock.coinY -= 60 * dt;
-      if (mysteryBlock.coinY < mysteryBlock.y - 36) {
-        mysteryBlock.coinActive = false;
-      }
-    }
+  function resetKickoff() {
+    ball.reset();
+    player.x = 220;
+    player.y = 200;
+    player.state = 'idle';
+    teammate.x = 180;
+    teammate.y = 130;
+    opponent.x = 420;
+    opponent.y = 200;
   }
 
-  // ── RENDER GAMBAR KE CANVAS ─────────────────────────────────
+  // ── RENDER STADION & PERTANDINGAN SEPAK BOLA ─────────────────
   function render() {
-    ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
+    // 1. Gambar Tribun Penonton & Lampu Sorot Stadion
+    renderStadiumGrandstand();
 
-    if (currentMode === 'soccer') {
-      renderSoccerPitch();
-    } else {
-      renderMarioWorld();
-    }
-  }
+    // 2. Gambar Rumput Lapangan Bergaris Hijau 2-Tone
+    renderGrassPitch();
 
-  function renderSoccerPitch() {
-    // 1. Papan Skor Retro di Atas Lapangan
-    ctx.fillStyle = 'rgba(24, 21, 18, 0.85)';
-    ctx.fillRect(V_WIDTH / 2 - 80, 12, 160, 24);
-    ctx.strokeStyle = '#c27827';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(V_WIDTH / 2 - 80, 12, 160, 24);
+    // 3. Gambar Garis Lapangan & Lingkaran Tengah
+    renderPitchMarkings();
 
-    ctx.font = 'bold 9px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#f7b500';
-    ctx.fillText(`BJR-18 [ ${scorePlayer} ]  :  [ ${scoreCPU} ] RIVAL`, V_WIDTH / 2, 27);
-    ctx.textAlign = 'left';
+    // 4. Gambar 2 Gawang Lengkap dengan Jaring Perspektif 3D
+    renderGoalNets();
 
-    // 2. Garis Lapangan & Garis Tepi
-    ctx.strokeStyle = 'rgba(194, 120, 39, 0.3)';
-    ctx.beginPath();
-    ctx.moveTo(0, 238);
-    ctx.lineTo(V_WIDTH, 238);
-    // Lingkaran tengah
-    ctx.arc(V_WIDTH / 2, 238, 28, Math.PI, 0, false);
-    ctx.stroke();
+    // 5. Gambar Kiper
+    drawPixelMatrix(ctx, SPRITE_GK, goalieLeft.x, goalieLeft.y, 2, false);
+    drawPixelMatrix(ctx, SPRITE_GK, goalieRight.x, goalieRight.y, 2, true);
 
-    // 3. Dua Gawang Retro Lengkap dengan Jaring
-    // Gawang Kiri (Dangerous Boys)
-    drawGoalpost(6, 195, 24, 43, 'left');
-    // Gawang Kanan (Gawang Lawan / Sasaran Tembak)
-    drawGoalpost(V_WIDTH - 30, 195, 24, 43, 'right');
+    // 6. Gambar Pemain AI Lawan
+    const oppSprite = opponent.frame === 0 ? SPRITE_OPP_RUN_1 : SPRITE_OPP_RUN_2;
+    drawPixelMatrix(ctx, oppSprite, opponent.x, opponent.y, 2, opponent.facing === -1);
 
-    // 4. Karakter Pemain 1 (Dangerous Boys)
-    let p1Sprite;
-    if (player1.state === 'celebrate') {
-      p1Sprite = SPRITE_P1_CELEBRATE;
-    } else if (player1.state === 'kick') {
-      p1Sprite = SPRITE_P1_KICK;
-    } else {
-      p1Sprite = player1.frame === 0 ? SPRITE_P1_RUN_1 : SPRITE_P1_RUN_2;
-    }
-    drawPixelMatrix(ctx, p1Sprite, player1.x, player1.y, 2, player1.facing === -1);
+    // 7. Gambar Teman Setim Dangerous Boys
+    const tmSprite = teammate.frame === 0 ? SPRITE_P1_RUN_1 : SPRITE_P1_RUN_2;
+    drawPixelMatrix(ctx, tmSprite, teammate.x, teammate.y, 2, false);
 
-    // Indikator "YOU" di atas Pemain 1
-    ctx.fillStyle = '#f7b500';
-    ctx.font = 'bold 7px monospace';
-    ctx.fillText('▼ KAMU', player1.x - 2, player1.y - 6);
+    // 8. Gambar Pemain Anda (Dangerous Boys BJR-18)
+    let pSprite = player.frame === 0 ? SPRITE_P1_RUN_1 : SPRITE_P1_RUN_2;
+    if (player.state === 'kick') pSprite = SPRITE_P1_KICK;
+    if (player.state === 'celebrate') pSprite = SPRITE_P1_CELEBRATE;
+    drawPixelMatrix(ctx, pSprite, player.x, player.y, 2, player.facing === -1);
 
-    // 5. Karakter Pemain 2 (Lawan)
-    const p2Sprite = player2.state === 'kick'
-      ? SPRITE_P2_RUN_1
-      : (player2.frame === 0 ? SPRITE_P2_RUN_1 : SPRITE_P2_RUN_2);
-    drawPixelMatrix(ctx, p2Sprite, player2.x, player2.y, 2, player2.facing === -1);
+    // Indikator nama "BJR-18 / KAMU" di atas kepala pemain
+    ctx.fillStyle = '#facc15';
+    ctx.font = 'bold 8px monospace';
+    ctx.fillText('▼ BJR·10', player.x - 2, player.y - 6);
 
-    // 6. Kiper Lawan di Gawang Kanan
-    drawPixelMatrix(ctx, SPRITE_GK, goalkeeper.x, goalkeeper.y, 2, true);
-    ctx.fillStyle = '#48a048';
-    ctx.font = '6px monospace';
-    ctx.fillText('KIPER', goalkeeper.x - 1, goalkeeper.y - 4);
+    // 9. Gambar Bayangan dan Bola Sepak (dengan Ketinggian Z)
+    renderSoccerBall();
 
-    // 7. Bola Sepak
-    ctx.save();
-    ctx.translate(ball.x, ball.y);
-    ctx.rotate(ball.rotation);
-    drawPixelMatrix(ctx, SPRITE_BALL, -8, -8, 2, false);
-    ctx.restore();
-
-    // Bayangan bola
-    ctx.fillStyle = 'rgba(24, 21, 18, 0.25)';
-    ctx.beginPath();
-    ctx.ellipse(ball.x, 236, Math.max(3, 8 - (228 - ball.y) * 0.1), 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 8. Tampilan Banner Selebrasi GOL!
-    if (goalCelebrationTimer > 0) {
-      renderGoalBanner();
-    }
-
-    // 9. Gambar Partikel Konfeti
+    // 10. Partikel Konfeti
     goalParticles.forEach(p => {
       ctx.fillStyle = p.color;
       ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 3, 3);
     });
+
+    // 11. Banner Perayaan Gol Layar Penuh
+    if (goalCelebrationTimer > 0) {
+      renderGoalCelebrationBanner();
+    }
   }
 
-  function drawGoalpost(x, y, w, h, side) {
+  function renderStadiumGrandstand() {
+    // Langit & Atap Stadion
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, V_WIDTH, PITCH_TOP);
+
+    // Tribun Penonton Retro Pixel
+    const crowdColors = ['#dc2626', '#2563eb', '#f59e0b', '#ffffff', '#10b981', '#7c3aed'];
+    for (let row = 0; row < 3; row++) {
+      const y = 8 + row * 16;
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, y + 10, V_WIDTH, 4);
+
+      for (let x = 8; x < V_WIDTH - 8; x += 12) {
+        const color = crowdColors[(x + row * 7) % crowdColors.length];
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y + 2, 8, 8); // Badan penonton
+        ctx.fillStyle = '#fdcca0';
+        ctx.fillRect(x + 2, y, 4, 3);  // Kepala penonton
+      }
+    }
+
+    // Papan Iklan Tepi Lapangan
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, PITCH_TOP - 14, V_WIDTH, 14);
+    ctx.strokeStyle = '#c27827';
+    ctx.strokeRect(0, PITCH_TOP - 14, V_WIDTH, 14);
+
+    ctx.fillStyle = '#facc15';
+    ctx.font = 'bold 8px monospace';
+    ctx.fillText('★ DANGEROUS BOYS STADIUM BANJAR CITY · SEJAK 2018 · PERSAHABATAN ABADI ★', 80, PITCH_TOP - 4);
+  }
+
+  function renderGrassPitch() {
+    // Rumput bergaris vertikal 2-tone hijau cerah khas stadion asli
+    const stripeWidth = 40;
+    for (let x = 0; x < V_WIDTH; x += stripeWidth) {
+      const isEven = Math.floor(x / stripeWidth) % 2 === 0;
+      ctx.fillStyle = isEven ? '#2e8540' : '#287739';
+      ctx.fillRect(x, PITCH_TOP, stripeWidth, PITCH_BOTTOM - PITCH_TOP);
+    }
+  }
+
+  function renderPitchMarkings() {
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
-    // Rangka tiang gawang
-    ctx.strokeRect(x, y, w, h);
 
-    // Pola jaring retro bergaris
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-    ctx.lineWidth = 1;
-    for (let lx = x + 4; lx < x + w; lx += 4) {
-      ctx.beginPath();
-      ctx.moveTo(lx, y);
-      ctx.lineTo(lx, y + h);
-      ctx.stroke();
-    }
-    for (let ly = y + 4; ly < y + h; ly += 6) {
-      ctx.beginPath();
-      ctx.moveTo(x, ly);
-      ctx.lineTo(x + w, ly);
-      ctx.stroke();
-    }
+    // Garis Batas Lapangan
+    ctx.strokeRect(PITCH_LEFT, PITCH_TOP, PITCH_RIGHT - PITCH_LEFT, PITCH_BOTTOM - PITCH_TOP);
+
+    // Garis Tengah & Lingkaran Tengah
+    const midX = V_WIDTH / 2;
+    ctx.beginPath();
+    ctx.moveTo(midX, PITCH_TOP);
+    ctx.lineTo(midX, PITCH_BOTTOM);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(midX, (PITCH_TOP + PITCH_BOTTOM) / 2, 48, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Titik Tengah Kickoff
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(midX, (PITCH_TOP + PITCH_BOTTOM) / 2, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Kotak Penalti Kiri
+    ctx.strokeRect(PITCH_LEFT, 115, 84, 170);
+    ctx.strokeRect(PITCH_LEFT, 145, 32, 110);
+
+    // Kotak Penalti Kanan
+    ctx.strokeRect(PITCH_RIGHT - 84, 115, 84, 170);
+    ctx.strokeRect(PITCH_RIGHT - 32, 145, 32, 110);
   }
 
-  function renderGoalBanner() {
-    ctx.fillStyle = 'rgba(18, 16, 14, 0.9)';
-    ctx.fillRect(V_WIDTH / 2 - 120, 80, 240, 52);
-    ctx.strokeStyle = goalScorer === 'player' ? '#f7b500' : '#d63220';
+  function renderGoalNets() {
+    // 1. Gawang Kiri (Dangerous Boys Goal)
+    draw3DGoal(PITCH_LEFT - GOAL_DEPTH, GOAL_Y_TOP, GOAL_DEPTH, GOAL_Y_BOTTOM - GOAL_Y_TOP, 'left');
+
+    // 2. Gawang Kanan (Lawan / Sasaran Tembak Anda)
+    draw3DGoal(PITCH_RIGHT, GOAL_Y_TOP, GOAL_DEPTH, GOAL_Y_BOTTOM - GOAL_Y_TOP, 'right');
+  }
+
+  function draw3DGoal(x, y, w, h, side) {
+    // Jaring gawang berpola
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.fillRect(x, y, w, h);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.lineWidth = 1;
+
+    for (let gy = y; gy <= y + h; gy += 8) {
+      ctx.beginPath();
+      ctx.moveTo(x, gy);
+      ctx.lineTo(x + w, gy);
+      ctx.stroke();
+    }
+    for (let gx = x; gx <= x + w; gx += 6) {
+      ctx.beginPath();
+      ctx.moveTo(gx, y);
+      ctx.lineTo(gx, y + h);
+      ctx.stroke();
+    }
+
+    // Tiang gawang putih tebal
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x, y, w, h);
+
+    // Label Gawang
+    ctx.fillStyle = side === 'left' ? '#facc15' : '#ef4444';
+    ctx.font = 'bold 7px monospace';
+    const tagText = side === 'left' ? 'BJR-18' : 'RIVAL';
+    ctx.fillText(tagText, x + 2, y - 4);
+  }
+
+  function renderSoccerBall() {
+    // Bayangan bola di tanah (posisi Y sebenarnya tanpa Z)
+    const shadowSize = Math.max(3, 7 - ball.z * 0.12);
+    ctx.fillStyle = 'rgba(10, 15, 10, 0.35)';
+    ctx.beginPath();
+    ctx.ellipse(ball.x, ball.y, shadowSize, shadowSize * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bola di udara (berada pada Y - Z)
+    ctx.save();
+    ctx.translate(ball.x, ball.y - ball.z);
+    ctx.rotate(ball.rotation);
+    drawPixelMatrix(ctx, SPRITE_BALL, -8, -8, 2, false);
+    ctx.restore();
+  }
+
+  function renderGoalCelebrationBanner() {
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.fillRect(V_WIDTH / 2 - 160, 110, 320, 68);
+    ctx.strokeStyle = goalScorer === 'player' ? '#facc15' : '#ef4444';
     ctx.lineWidth = 2;
-    ctx.strokeRect(V_WIDTH / 2 - 120, 80, 240, 52);
+    ctx.strokeRect(V_WIDTH / 2 - 160, 110, 320, 68);
 
     ctx.textAlign = 'center';
-    ctx.font = 'bold 16px monospace';
-    ctx.fillStyle = goalScorer === 'player' ? '#f7b500' : '#ff7a70';
-    ctx.fillText('★ GOOOLLLL! ★', V_WIDTH / 2, 105);
+    ctx.font = 'bold 22px monospace';
+    ctx.fillStyle = goalScorer === 'player' ? '#facc15' : '#f87171';
+    ctx.fillText('★ GOOOOLLLLLL! ★', V_WIDTH / 2, 142);
 
-    ctx.font = '9px monospace';
+    ctx.font = '10px monospace';
     ctx.fillStyle = '#ffffff';
-    const textDesc = goalScorer === 'player'
-      ? 'DANGEROUS BOYS MENCETAK SKOR!'
-      : 'TIM LAWAN MEMBALAS GOL!';
-    ctx.fillText(textDesc, V_WIDTH / 2, 122);
+    const subText = goalScorer === 'player'
+      ? 'DANGEROUS BOYS (BJR-18) MENCETAK ANGKA!'
+      : 'BANJAR RIVAL FC MEMBALAS GOL!';
+    ctx.fillText(subText, V_WIDTH / 2, 162);
     ctx.textAlign = 'left';
   }
 
-  function renderMarioWorld() {
-    // Lantai bata
-    ctx.fillStyle = 'rgba(184, 61, 46, 0.25)';
-    ctx.fillRect(0, 232, V_WIDTH, 38);
-    ctx.strokeStyle = 'rgba(184, 61, 46, 0.5)';
-    ctx.strokeRect(0, 232, V_WIDTH, 1);
-
-    // Balok [?]
-    const blockY = mysteryBlock.y + mysteryBlock.bumpY;
-    drawPixelMatrix(ctx, SPRITE_BLOCK, mysteryBlock.x, blockY, 2, false);
-
-    // Koin
-    if (mysteryBlock.coinActive) {
-      ctx.fillStyle = '#f7b500';
-      ctx.fillRect(mysteryBlock.x + 8, mysteryBlock.coinY, 8, 12);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(mysteryBlock.x + 10, mysteryBlock.coinY + 2, 4, 8);
-    }
-
-    // Mario
-    let marioSprite;
-    if (mario.isJumping) {
-      marioSprite = SPRITE_MARIO_JUMP;
-    } else {
-      marioSprite = mario.frame === 0 ? SPRITE_MARIO_STAND : SPRITE_MARIO_RUN;
-    }
-    drawPixelMatrix(ctx, marioSprite, mario.x, mario.y, 2, mario.facing === -1);
-
-    ctx.fillStyle = '#f7b500';
-    ctx.font = 'bold 7px monospace';
-    ctx.fillText('▼ MARIO', mario.x + 1, mario.y - 6);
-  }
-
-  // ── GAME LOOP UTAMA ─────────────────────────────────────────
+  // ── GAME LOOP ───────────────────────────────────────────────
   function gameLoop(now) {
     if (!isPaused) {
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      const dt = Math.min((now - lastTime) / 1000, 0.08);
       lastTime = now;
 
-      if (currentMode === 'soccer') {
-        updateSoccer(dt);
-      } else {
-        updateMario(dt);
-      }
-
+      updateGame(dt);
       render();
+      updateHUDDisplay();
     } else {
       lastTime = now;
     }
@@ -949,108 +953,73 @@
     animId = requestAnimationFrame(gameLoop);
   }
 
-  // ── WIDGET KONTROL RETRO & ON-SCREEN GAMEPAD ──────────────────
-  function createRetroGameWidget() {
-    if (document.getElementById('retroControlsWidget')) return;
+  function updateHUDDisplay() {
+    const scoreEl = document.getElementById('hudScoreText');
+    if (scoreEl) {
+      scoreEl.textContent = `${scorePlayer}  -  ${scoreCPU}`;
+    }
 
-    // 1. Panel Mode & Suara di Pojok Kiri Bawah
-    const widget = document.createElement('div');
-    widget.id = 'retroControlsWidget';
-    widget.className = 'retro-widget';
-    widget.innerHTML = `
-      <div class="retro-widget-header">
-        <span class="retro-widget-dot"></span>
-        <span class="retro-widget-title">Game Retro Dangerous Boys</span>
-      </div>
-      <div class="retro-widget-btns">
-        <button id="btnModeSoccer" class="retro-btn active" title="Mode Pertandingan Sepak Bola">
-          ⚽ Bola
-        </button>
-        <button id="btnModeMario" class="retro-btn" title="Mode Mario Bros">
-          🍄 Mario
-        </button>
-        <button id="btnToggleSound" class="retro-btn" title="Suara Efek Retro">
-          🔊 Suara
-        </button>
-        <button id="btnResetMatch" class="retro-btn" title="Mulai Ulang Skor">
-          ↺ Reset
-        </button>
-      </div>
-    `;
-    document.body.appendChild(widget);
-
-    // 2. On-Screen Gamepad di Pojok Kanan Bawah untuk Kendali Langsung
-    const gamepad = document.createElement('div');
-    gamepad.id = 'retroGamepad';
-    gamepad.className = 'retro-gamepad';
-    gamepad.innerHTML = `
-      <div class="gamepad-group">
-        <button id="padLeft" class="pad-btn" aria-label="Lari Kiri">◀ Kiri</button>
-        <button id="padRight" class="pad-btn" aria-label="Lari Kanan">▶ Kanan</button>
-      </div>
-      <div class="gamepad-group">
-        <button id="padJump" class="pad-btn pad-action" aria-label="Lompat">🦘 Lompat</button>
-        <button id="padKick" class="pad-btn pad-kick" aria-label="Tendang">⚽ Tendang</button>
-      </div>
-    `;
-    document.body.appendChild(gamepad);
-
-    // Event Listener Widget
-    document.getElementById('btnModeSoccer').addEventListener('click', () => {
-      initAudio();
-      currentMode = 'soccer';
-      ball.reset();
-      document.getElementById('btnModeSoccer').classList.add('active');
-      document.getElementById('btnModeMario').classList.remove('active');
-    });
-
-    document.getElementById('btnModeMario').addEventListener('click', () => {
-      initAudio();
-      currentMode = 'mario';
-      mario.x = 60;
-      mario.y = mario.groundY;
-      mario.vy = 0;
-      mario.isJumping = false;
-      document.getElementById('btnModeMario').classList.add('active');
-      document.getElementById('btnModeSoccer').classList.remove('active');
-    });
-
-    const btnSound = document.getElementById('btnToggleSound');
-    btnSound.addEventListener('click', () => {
-      initAudio();
-      soundEnabled = !soundEnabled;
-      btnSound.textContent = soundEnabled ? '🔊 Suara' : '🔇 Hening';
-      btnSound.classList.toggle('active', soundEnabled);
-    });
-
-    document.getElementById('btnResetMatch').addEventListener('click', () => {
-      scorePlayer = 0;
-      scoreCPU = 0;
-      ball.reset();
-      playRetroSound('kick');
-    });
-
-    // Event Listener Gamepad (Mendukung Mouse & Layar Sentuh Touch)
-    const bindPad = (elemId, onPress, onRelease) => {
-      const el = document.getElementById(elemId);
-      if (!el) return;
-      el.addEventListener('mousedown', e => { e.preventDefault(); initAudio(); onPress(); });
-      el.addEventListener('mouseup', e => { e.preventDefault(); onRelease(); });
-      el.addEventListener('mouseleave', e => { onRelease(); });
-      el.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); onPress(); });
-      el.addEventListener('touchend', e => { e.preventDefault(); onRelease(); });
-    };
-
-    bindPad('padLeft', () => { keys.left = true; }, () => { keys.left = false; });
-    bindPad('padRight', () => { keys.right = true; }, () => { keys.right = false; });
-    bindPad('padJump', () => { keys.jump = true; executePlayerJump(); }, () => { keys.jump = false; });
-    bindPad('padKick', () => { keys.kick = true; executePlayerKick(); }, () => { keys.kick = false; });
+    const timerEl = document.getElementById('hudTimerText');
+    if (timerEl) {
+      const totalSec = Math.max(0, Math.floor(matchTime));
+      const min = Math.floor(totalSec / 60).toString().padStart(2, '0');
+      const sec = (totalSec % 60).toString().padStart(2, '0');
+      timerEl.textContent = `${min}:${sec}`;
+    }
   }
 
+  // ── KONTROLER ARCADE BULAT (TOMBOL FISIK GAME CONSOLE) ──────
+  function setupArcadeControls() {
+    // 1. D-Pad Bulat Kiri (Arah)
+    const bindBtn = (id, onStart, onEnd) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const start = (e) => { e.preventDefault(); initAudio(); onStart(); };
+      const end = (e) => { e.preventDefault(); onEnd(); };
+      btn.addEventListener('mousedown', start);
+      btn.addEventListener('mouseup', end);
+      btn.addEventListener('mouseleave', end);
+      btn.addEventListener('touchstart', start, { passive: false });
+      btn.addEventListener('touchend', end, { passive: false });
+    };
+
+    bindBtn('arcLeft',  () => input.left = true,  () => input.left = false);
+    bindBtn('arcRight', () => input.right = true, () => input.right = false);
+    bindBtn('arcUp',    () => input.up = true,    () => input.up = false);
+    bindBtn('arcDown',  () => input.down = true,  () => input.down = false);
+
+    // 2. Tombol Aksi Bulat Kanan
+    bindBtn('arcShoot', () => { input.shoot = true; executeShoot(); }, () => input.shoot = false);
+    bindBtn('arcPass',  () => { input.pass = true; executePass(); },   () => input.pass = false);
+    bindBtn('arcSprint',() => input.sprint = true,                     () => input.sprint = false);
+
+    // 3. Tombol Reset Skor & Audio
+    const btnSound = document.getElementById('arcSound');
+    if (btnSound) {
+      btnSound.addEventListener('click', () => {
+        initAudio();
+        soundEnabled = !soundEnabled;
+        btnSound.textContent = soundEnabled ? '🔊' : '🔇';
+      });
+    }
+
+    const btnReset = document.getElementById('arcReset');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        scorePlayer = 0;
+        scoreCPU = 0;
+        matchTime = 90 * 60;
+        resetKickoff();
+        playRetroSound('whistle');
+      });
+    }
+  }
+
+  // Load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initGameEngine);
+    document.addEventListener('DOMContentLoaded', initGame);
   } else {
-    initGameEngine();
+    initGame();
   }
 
 })();

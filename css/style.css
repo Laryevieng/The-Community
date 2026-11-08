@@ -1158,160 +1158,335 @@ section {
   color: var(--ink-muted);
 }
 
-/* ── RETRO GAME CANVAS & WIDGET ────────────────────────────── */
-#retroCanvas {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.38;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  transition: opacity 0.3s ease;
-}
-
-header.hero,
-section,
-.site-footer,
-.section-divider {
+/* ── RETRO ARCADE ARENA (100VH REAL GAME) ───────────────────── */
+.retro-game-arena {
   position: relative;
-  z-index: 2;
-}
-
-/* Retro Controller Widget di Pojok Bawah Kiri */
-.retro-widget {
-  position: fixed;
-  bottom: 24px;
-  left: 24px;
-  z-index: 99;
-  background-color: rgba(26, 23, 20, 0.94);
-  border: 1px solid var(--paper-edge);
-  box-shadow: var(--shadow-card);
-  padding: 8px 12px;
-  border-radius: 2px;
+  width: 100%;
+  height: 100vh;
+  min-height: 580px;
+  background-color: #0b0f19;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  backdrop-filter: blur(6px);
+  justify-content: space-between;
+  border-bottom: 3px solid var(--film-amber);
 }
 
-.retro-widget-header {
+#soccerGameCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* 1. HUD Papan Skor Retro Atas */
+.arcade-hud {
+  position: relative;
+  z-index: 10;
+  margin: 78px auto 0;
+  max-width: 880px;
+  width: calc(100% - 32px);
+  background-color: rgba(15, 23, 42, 0.94);
+  border: 1.5px solid rgba(194, 120, 39, 0.6);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 8px 18px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  backdrop-filter: blur(8px);
 }
 
-.retro-widget-dot {
-  width: 6px;
-  height: 6px;
-  background-color: var(--film-amber);
-  border-radius: 50%;
-  box-shadow: 0 0 6px var(--film-amber);
+.hud-team {
+  display: flex;
+  flex-direction: column;
 }
 
-.retro-widget-title {
+.hud-tag {
   font-family: var(--font-typewriter);
-  font-size: 0.65rem;
-  color: var(--darkroom-text);
+  font-size: 0.62rem;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--darkroom-muted);
 }
 
-.retro-widget-btns {
+.hud-team-name {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.hud-home .hud-team-name {
+  color: #facc15;
+}
+
+.hud-away .hud-team-name {
+  color: #93c5fd;
+  text-align: right;
+}
+
+.hud-center {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
 }
 
-.retro-btn {
+.hud-score-display {
+  font-family: var(--font-typewriter);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #facc15;
+  background-color: #020617;
+  padding: 2px 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  box-shadow: inset 0 0 10px rgba(250, 204, 21, 0.2);
+  letter-spacing: 0.1em;
+}
+
+.hud-timer {
   font-family: var(--font-typewriter);
   font-size: 0.72rem;
-  font-weight: 600;
-  padding: 4px 8px;
-  background-color: var(--darkroom-card);
-  border: 1px solid var(--darkroom-border);
-  color: var(--darkroom-muted);
-  border-radius: 2px;
+  color: #cbd5e1;
+  margin-top: 3px;
+}
+
+.hud-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-tool-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.retro-btn:hover {
-  color: #fff;
-  border-color: var(--film-amber);
-}
-
-.retro-btn.active {
+.hud-tool-btn:hover {
   background-color: var(--film-amber);
   color: #12100e;
-  border-color: var(--film-amber);
 }
 
-.retro-btn.paused {
-  background-color: var(--film-red);
-  color: #fff;
-  border-color: var(--film-red);
-}
-
-/* ── KONTROLER GAMEPAD ON-SCREEN (TOUCH & KLIK) ─────────────── */
-.retro-gamepad {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 99;
+/* 2. Panel Kontroler Bawah (Tactile Round Arcade Hardware) */
+.arcade-bottom-panel {
+  position: relative;
+  z-index: 10;
+  padding: 16px 28px 24px;
   display: flex;
-  gap: 12px;
-  background-color: rgba(26, 23, 20, 0.94);
-  border: 1px solid var(--paper-edge);
-  box-shadow: var(--shadow-card);
-  padding: 8px 12px;
-  border-radius: 2px;
-  backdrop-filter: blur(6px);
-  user-select: none;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  pointer-events: none;
 }
 
-.gamepad-group {
+/* Cluster D-Pad Bulat Kiri */
+.arcade-dpad-cluster {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  background-color: rgba(15, 23, 42, 0.88);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  padding: 8px;
+  border-radius: 50%;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
 }
 
-.pad-btn {
-  font-family: var(--font-typewriter);
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 8px 12px;
-  background-color: var(--darkroom-card);
-  border: 1px solid var(--darkroom-border);
-  color: var(--darkroom-text);
-  border-radius: 2px;
+.dpad-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dpad-middle {
+  gap: 4px;
+}
+
+.dpad-core {
+  width: 22px;
+  height: 22px;
+  background-color: #0f172a;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.round-dpad-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #334155, #1e293b);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: #f1f5f9;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 0 #0f172a, 0 6px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.08s ease;
   user-select: none;
   touch-action: manipulation;
 }
 
-.pad-btn:active {
+.round-dpad-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #0f172a, 0 2px 4px rgba(0, 0, 0, 0.4);
+  background: #facc15;
+  color: #0f172a;
+}
+
+/* Navigasi Gulir ke Bawah (Tengah) */
+.arcade-center-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  margin-bottom: 6px;
+}
+
+.arcade-status-tag {
+  font-family: var(--font-typewriter);
+  font-size: 0.7rem;
+  color: #facc15;
+  letter-spacing: 0.12em;
+  background-color: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  padding: 3px 12px;
+  border-radius: 2px;
+}
+
+.btn-scroll-down {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background-color: var(--paper-cream);
+  color: var(--ink-carbon);
+  font-family: var(--font-typewriter);
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 30px;
+  border: 1.5px solid var(--paper-edge);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  animation: bounceHint 2s infinite ease-in-out;
+}
+
+.btn-scroll-down:hover {
   background-color: var(--film-amber);
-  color: #12100e;
-  transform: translateY(1px);
-}
-
-.pad-action:active {
-  background-color: #2255cc;
   color: #fff;
+  transform: translateY(-2px);
 }
 
-.pad-kick {
-  background-color: var(--film-amber);
-  color: #12100e;
-  border-color: var(--film-amber);
+@keyframes bounceHint {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
-.pad-kick:active {
-  background-color: var(--film-amber-hover);
-  color: #fff;
+/* Cluster Tombol Aksi Bulat Kanan */
+.arcade-action-cluster {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  pointer-events: auto;
+  background-color: rgba(15, 23, 42, 0.88);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  padding: 12px 16px;
+  border-radius: 40px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.action-btn-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.round-arcade-btn {
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: all 0.08s ease;
+}
+
+.round-arcade-btn span {
+  font-family: var(--font-typewriter);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.round-arcade-btn small {
+  font-family: var(--font-typewriter);
+  font-size: 0.55rem;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.btn-blue {
+  width: 48px;
+  height: 48px;
+  background: radial-gradient(circle at 35% 35%, #3b82f6, #1d4ed8);
+  border: 2px solid #60a5fa;
+  color: #ffffff;
+  font-size: 0.68rem;
+  box-shadow: 0 5px 0 #1e3a8a, 0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+.btn-blue:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #1e3a8a, 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.btn-gold {
+  width: 48px;
+  height: 48px;
+  background: radial-gradient(circle at 35% 35%, #facc15, #ca8a04);
+  border: 2px solid #fef08a;
+  color: #1e1b4b;
+  font-size: 0.68rem;
+  box-shadow: 0 5px 0 #854d0e, 0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+.btn-gold:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #854d0e, 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.btn-red {
+  width: 68px;
+  height: 68px;
+  background: radial-gradient(circle at 35% 35%, #ef4444, #b91c1c);
+  border: 2.5px solid #fca5a5;
+  color: #ffffff;
+  font-size: 0.78rem;
+  box-shadow: 0 6px 0 #7f1d1d, 0 8px 16px rgba(0, 0, 0, 0.6);
+}
+
+.btn-red:active {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 #7f1d1d, 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
 /* ── 13. RESPONSIVE BREAKPOINTS (LAPTOP, TABLET, HANDPHONE) ─── */
@@ -1445,31 +1620,65 @@ section,
   .modal-title {
     font-size: 1.5rem;
   }
-  /* Tata letak widget game retro di smartphone */
-  .retro-widget {
-    bottom: auto;
-    top: 70px;
-    left: 16px;
-    right: 16px;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+  /* Responsif Arena Game Retro di Smartphone */
+  .retro-game-arena {
+    height: 100svh;
+    min-height: 520px;
+  }
+  .arcade-hud {
+    width: calc(100% - 20px);
+    margin: 66px auto 0;
     padding: 6px 12px;
-    background-color: rgba(26, 23, 20, 0.96);
   }
-  .retro-widget-title {
-    display: none;
+  .hud-team-name {
+    font-size: 0.85rem;
   }
-  .retro-gamepad {
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
+  .hud-score-display {
+    font-size: 1.25rem;
+    padding: 2px 8px;
+  }
+  .arcade-bottom-panel {
+    padding: 8px 12px 16px;
+    flex-wrap: wrap;
     justify-content: space-between;
-    padding: 8px 12px;
+    gap: 8px;
   }
-  .pad-btn {
-    padding: 10px 14px;
+  .arcade-center-nav {
+    order: -1;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  .arcade-status-tag {
+    font-size: 0.6rem;
+    padding: 2px 8px;
+  }
+  .btn-scroll-down {
+    padding: 8px 16px;
+    font-size: 0.72rem;
+  }
+  .round-dpad-btn {
+    width: 38px;
+    height: 38px;
     font-size: 0.75rem;
+  }
+  .dpad-core {
+    width: 18px;
+    height: 18px;
+  }
+  .arcade-action-cluster {
+    padding: 8px 12px;
+    gap: 10px;
+    border-radius: 30px;
+  }
+  .btn-blue, .btn-gold {
+    width: 40px;
+    height: 40px;
+    font-size: 0.6rem;
+  }
+  .btn-red {
+    width: 54px;
+    height: 54px;
+    font-size: 0.68rem;
   }
 }
 

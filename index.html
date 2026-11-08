@@ -15,16 +15,92 @@
 
 <body>
 
-    <!-- RETRO GAME BACKGROUND CANVAS (Zero-Lag 60FPS) -->
-    <canvas id="retroCanvas" aria-hidden="true"></canvas>
-
     <!-- NAVBAR (diinjeksi oleh components/navbar.js) -->
     <div id="navbar-root"></div>
 
     <!-- ═══════════════════════════════════════════════════════════
+         RETRO ARCADE SOCCER ARENA (TAMPILAN AWAL 100VH REAL GAME)
+    ════════════════════════════════════════════════════════════ -->
+    <section id="retro-game" class="retro-game-arena">
+        <!-- Canvas Lapangan Stadion 60FPS -->
+        <canvas id="soccerGameCanvas"></canvas>
+
+        <!-- Papan Skor Retro HUD di Bagian Atas -->
+        <div class="arcade-hud">
+            <div class="hud-team hud-home">
+                <span class="hud-tag">TUAN RUMAH</span>
+                <span class="hud-team-name">DANGEROUS BOYS</span>
+            </div>
+
+            <div class="hud-center">
+                <div class="hud-score-display" id="hudScoreText">0  -  0</div>
+                <div class="hud-timer" id="hudTimerText">90:00</div>
+            </div>
+
+            <div class="hud-team hud-away">
+                <span class="hud-tag">TIM LAWAN</span>
+                <span class="hud-team-name">BANJAR RIVAL FC</span>
+            </div>
+
+            <div class="hud-tools">
+                <button id="arcSound" class="hud-tool-btn" title="Aktifkan / Bisukan Suara">🔊</button>
+                <button id="arcReset" class="hud-tool-btn" title="Mulai Ulang Pertandingan">↺</button>
+            </div>
+        </div>
+
+        <!-- Tombol Fisik Bulat Arcade Kontroler -->
+        <div class="arcade-bottom-panel">
+            <!-- D-Pad Bulat Kiri (Arah Gerak) -->
+            <div class="arcade-dpad-cluster">
+                <div class="dpad-row">
+                    <button id="arcUp" class="round-dpad-btn" aria-label="Maju / Sundulan">▲</button>
+                </div>
+                <div class="dpad-row dpad-middle">
+                    <button id="arcLeft" class="round-dpad-btn" aria-label="Lari Kiri">◀</button>
+                    <div class="dpad-core"></div>
+                    <button id="arcRight" class="round-dpad-btn" aria-label="Lari Kanan">▶</button>
+                </div>
+                <div class="dpad-row">
+                    <button id="arcDown" class="round-dpad-btn" aria-label="Mundur / Bertahan">▼</button>
+                </div>
+            </div>
+
+            <!-- Navigasi Gulir ke Cerita Utama -->
+            <div class="arcade-center-nav">
+                <div class="arcade-status-tag">★ PERTANDINGAN SEPAK BOLA RETRO BJR-18 ★</div>
+                <a href="#hero" class="btn-scroll-down">
+                    <span>Jelajahi Cerita Dangerous Boys</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <polyline points="19 12 12 19 5 12"></polyline>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Tombol Aksi Bulat Kanan -->
+            <div class="arcade-action-cluster">
+                <div class="action-btn-sub">
+                    <button id="arcPass" class="round-arcade-btn btn-blue" aria-label="Oper Bola">
+                        <span>OPER</span>
+                        <small>[ X ]</small>
+                    </button>
+                    <button id="arcSprint" class="round-arcade-btn btn-gold" aria-label="Lari Kencang">
+                        <span>TURBO</span>
+                        <small>[ Shift ]</small>
+                    </button>
+                </div>
+                <button id="arcShoot" class="round-arcade-btn btn-red btn-large" aria-label="Tendang Bola ke Gawang">
+                    <span>TENDANG</span>
+                    <small>[ SPASI ]</small>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
          HERO SECTION: VINTAGE FILM SPREAD
     ════════════════════════════════════════════════════════════ -->
-    <header class="hero">
+    <header class="hero" id="hero">
         <div class="container">
             <div class="hero-grid">
 

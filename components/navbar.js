@@ -11,6 +11,8 @@ function renderNavbar(activePage = '') {
       </a>
 
       <ul class="nav-links">
+        <li><a href="index.html#retro-game">Game Bola ⚽</a></li>
+        <li><a href="index.html#hero">Arsip Utama</a></li>
         <li><a href="index.html#about" ${activePage==='about' ? 'class="nav-active"' : ''}>Sejarah</a></li>
         <li><a href="index.html#party" ${activePage==='party' ? 'class="nav-active"' : ''}>Perayaan</a></li>
         <li><a href="index.html#dear-banjar" ${activePage==='dear' ? 'class="nav-active"' : ''}>Dear Banjar</a></li>
