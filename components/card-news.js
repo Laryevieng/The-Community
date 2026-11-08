@@ -1,53 +1,65 @@
 // ============================================================
-//  components/card-news.js — News Card Component
-//  Membangun HTML card berita dari data post Supabase
+//  components/card-news.js — News Card Component (Warm Retro Archive)
 // ============================================================
 
 /**
- * Format tanggal ke Bahasa Indonesia
+ * Format tanggal bergaya mesin tik / arsip
  * @param {string} dateStr - ISO date string
  */
 function formatDate(dateStr) {
-  if (!dateStr) return '';
+  if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric'
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
   });
 }
 
 /**
  * Buat HTML satu news card
  * @param {Object} post - data post dari Supabase
- * @param {number} index - index untuk stagger animation
+ * @param {number} index - index untuk urutan animasi
  */
 function createNewsCard(post, index = 0) {
-  const delay = index * 0.1;
   const safePost = JSON.stringify(post).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
 
   const imageHTML = post.image_url
     ? `<img src="${post.image_url}" alt="${escapeHtml(post.title)}" loading="lazy" />`
-    : `<div class="nc-img-placeholder">${escapeHtml(post.title)}</div>`;
+    : `<div class="nc-img-placeholder">
+         <span class="nc-ph-tag">Klise Teks</span>
+         <span class="nc-ph-title">${escapeHtml(post.title)}</span>
+       </div>`;
 
   return `
     <article
       class="news-card reveal"
-      style="transition-delay: ${delay}s"
       onclick='openNewsModal(${safePost})'
       tabindex="0"
       role="button"
-      aria-label="Baca: ${escapeHtml(post.title)}"
+      aria-label="Buka warta: ${escapeHtml(post.title)}"
       onkeydown="if(event.key==='Enter')openNewsModal(${safePost})"
     >
       <div class="news-card-img">
         ${imageHTML}
       </div>
-      <div class="nc-meta">
-        <span class="nc-author">${escapeHtml(post.author || 'Dangerous Boys')}</span>
-        <span class="nc-dot">·</span>
-        <span class="nc-date">${formatDate(post.created_at)}</span>
+      <div class="news-card-body">
+        <div class="nc-meta">
+          <span class="nc-author">${escapeHtml(post.author || 'Dangerous Boys')}</span>
+          <span>/</span>
+          <time class="nc-date">${formatDate(post.created_at)}</time>
+        </div>
+        <h3 class="nc-title">${escapeHtml(post.title)}</h3>
+        <p class="nc-story">${escapeHtml(post.story)}</p>
+        <div class="nc-footer">
+          <span class="nc-read">
+            Baca Klise Berita
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </div>
       </div>
-      <h3 class="nc-title">${escapeHtml(post.title)}</h3>
-      <p class="nc-story">${escapeHtml(post.story)}</p>
-      <span class="nc-read" aria-hidden="true">Baca Selengkapnya</span>
     </article>
   `;
 }
@@ -59,7 +71,7 @@ function createNewsLoading() {
   return `
     <div class="news-state" style="grid-column:1/-1">
       <div class="news-state-spinner"></div>
-      <p>Memuat cerita...</p>
+      <p class="news-state-msg">Memuat lembar arsip warta...</p>
     </div>
   `;
 }
@@ -67,13 +79,13 @@ function createNewsLoading() {
 /**
  * Render empty state
  * @param {string} msg - pesan utama
- * @param {string} sub - pesan kecil
+ * @param {string} sub - penjelasan ringkas
  */
-function createNewsEmpty(msg = 'Belum ada cerita.', sub = '') {
+function createNewsEmpty(msg = 'Belum ada catatan yang diterbitkan.', sub = '') {
   return `
     <div class="news-state" style="grid-column:1/-1">
       <p class="news-state-msg">${msg}</p>
-      ${sub ? `<small class="news-state-sub">${sub}</small>` : ''}
+      ${sub ? `<p class="news-state-sub">${sub}</p>` : ''}
     </div>
   `;
 }

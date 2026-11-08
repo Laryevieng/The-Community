@@ -5,25 +5,61 @@
 // Data statis untuk party dan Dear Banjar City
 const STATIC_MODAL_DATA = {
   party1: {
-    tag: 'Party Pertama · 2021',
+    tag: 'Arsip Perayaan · 2021',
     title: 'Malam Pertama Kita Merayakan',
-    story: 'Malam di mana semuanya terasa seperti mimpi. Untuk pertama kalinya, Dangerous Boys berkumpul dalam perayaan yang sesungguhnya. Musik mengalun kencang, tawa tak berhenti, dan di bawah langit Banjar yang penuh bintang, kita membuat janji yang masih kita pegang hingga hari ini.',
-    meta: '📍 Banjar City · 2021 · 40+ Tamu · SMKN 2 Banjar & Aliansi',
-    image: null
+    story: 'Malam pertama Dangerous Boys berkumpul dalam satu perayaan bersama. Musik mengalun, tawa terdengar sepanjang malam, dan di bawah langit Banjar kita menyepakati persahabatan yang bertahan sampai hari ini.',
+    meta: 'Banjar City · 2021 · 40+ Hadir · SMKN 2 Banjar & Rekan Aliansi',
+    image: 'assets/images/homeajay.jpeg'
   },
   party2: {
-    tag: 'Party Kedua · 2023',
-    title: 'Lebih Besar, Lebih Liar',
-    story: 'Dua tahun berlalu, Dangerous Boys kembali dengan lebih banyak wajah, lebih banyak cerita, dan semangat yang tak pernah padam. Party kedua ini menjadi bukti bahwa persahabatan kami terus tumbuh — melampaui tembok sekolah, melampaui waktu.',
-    meta: '📍 Banjar City · 2023 · 80+ Tamu · Seluruh Komunitas Banjar',
-    image: null
+    tag: 'Arsip Perayaan · 2023',
+    title: 'Lebih Luas, Lebih Dekat',
+    story: 'Dua tahun berselang, pertemuan kedua mengumpulkan lebih banyak kawan dan cerita. Perayaan ini menegaskan ikatan pertemanan yang terus terjaga melampaui masa sekolah.',
+    meta: 'Banjar City · 2023 · 80+ Hadir · Komunitas Pemuda Banjar',
+    image: 'assets/images/socer.jpeg'
   },
-  banjar1: { tag: 'Dear Banjar City', title: 'Jalanan yang Selalu Memanggil Pulang', story: 'Di sini kita belajar arti pulang. Bukan pulang ke rumah, tapi pulang ke tempat di mana kita dikenal — di mana nama kita diucapkan dengan cinta.', meta: '📍 Banjar City · 2022', image: null },
-  banjar2: { tag: 'Dear Banjar City', title: 'Komunitas yang Kita Bangun', story: 'Persahabatan yang ditempa dari keringat dan tawa. Dari obrolan di pinggir jalan hingga mimpi yang kita rangkai bersama.', meta: '📍 Banjar City · 2021', image: null },
-  banjar3: { tag: 'Dear Banjar City', title: 'Wajah-Wajah Dangerous Boys', story: 'Wajah-wajah yang akan selalu aku rindukan. Setiap detail, setiap senyum, setiap tatapan yang menyimpan ribuan cerita yang tak terucapkan.', meta: '📍 Banjar City · 2023', image: null },
-  banjar4: { tag: 'Dear Banjar City', title: 'Sejarah Kecil Kita', story: 'Kita menulis sejarah kecil kita sendiri. Tidak di buku pelajaran — tapi di hati masing-masing, dalam kenangan yang tak akan pernah pudar.', meta: '📍 Banjar City · 2022', image: null },
-  banjar5: { tag: 'Dear Banjar City', title: 'Bangga Berdiri di Banjar', story: 'Banjar mengajarkan kita untuk bangga dengan tempat kita berdiri. Kota kecil ini memiliki jiwa yang besar — dan Dangerous Boys adalah salah satu denyutannya.', meta: '📍 Banjar City · 2023', image: null },
-  banjar6: { tag: 'Dear Banjar City', title: 'Malam-Malam yang Membentuk Kita', story: 'Malam-malam panjang yang membentuk kita menjadi siapa kita hari ini. Setiap percakapan, setiap momen, adalah fondasi dari segalanya.', meta: '📍 Banjar City · 2022', image: null },
+  banjar1: {
+    tag: 'Dear Banjar City · 01',
+    title: 'Jalanan yang Selalu Menjadi Tempat Pulang',
+    story: 'Di sini kita belajar arti pulang menuju ruang di mana nama kita dikenal dan diterima seutuhnya.',
+    meta: 'Banjar City · 2022 · Dokumentasi Lapangan',
+    image: 'assets/images/botak.jpeg'
+  },
+  banjar2: {
+    tag: 'Dear Banjar City · 02',
+    title: 'Ikatan Pertemanan yang Ditempa Bersama',
+    story: 'Persahabatan yang terbentuk lewat keseharian dan kebersamaan di sudut kota Banjar.',
+    meta: 'Banjar City · 2021 · Arsip Anggota',
+    image: 'assets/images/scitem.jpeg'
+  },
+  banjar3: {
+    tag: 'Dear Banjar City · 03',
+    title: 'Potret Angkatan Dangerous Boys',
+    story: 'Wajah-wajah yang mengawali langkah bersama dari masa sekolah hingga menapaki jalan masing-masing.',
+    meta: 'Banjar City · 2023 · SMKN 2 Banjar',
+    image: 'assets/images/wisudasmk1.jpeg'
+  },
+  banjar4: {
+    tag: 'Dear Banjar City · 04',
+    title: 'Catatan Perjalanan Bersama',
+    story: 'Kita menyusun catatan perjalanan sendiri di memori masing-masing, tersimpan dalam cerita yang nyata.',
+    meta: 'Banjar City · 2022 · Lapangan Olahraga',
+    image: 'assets/images/socer2.jpeg'
+  },
+  banjar5: {
+    tag: 'Dear Banjar City · 05',
+    title: 'Rasa Bangga Berpijak di Banjar',
+    story: 'Banjar mengajarkan kerendahan hati sekaligus keteguhan. Kota ini memberi ruang bertumbuh bagi Dangerous Boys.',
+    meta: 'Banjar City · 2023 · Sudut Kota',
+    image: 'assets/images/homeajay.jpeg'
+  },
+  banjar6: {
+    tag: 'Dear Banjar City · 06',
+    title: 'Malam-Malam Pembentuk Karakter',
+    story: 'Pertemuan panjang di warung dan trotoar membentuk cara kita bersikap dan menjaga satu sama lain.',
+    meta: 'Banjar City · 2022 · Dokumentasi Malam',
+    image: 'assets/images/botak.jpeg'
+  },
 };
 
 /**
@@ -42,10 +78,10 @@ function openModal(key) {
  */
 function openNewsModal(post) {
   _showModal(
-    `Oleh ${post.author || 'Dangerous Boys'}`,
+    `Ditulis oleh ${post.author || 'Dangerous Boys'}`,
     post.title,
     post.story,
-    `📅 ${formatDate(post.created_at)}`,
+    formatDate(post.created_at),
     post.image_url || null
   );
 }

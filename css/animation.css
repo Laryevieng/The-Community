@@ -1,13 +1,16 @@
 /* ============================================================
-   animation.css — Keyframes & Scroll Reveal Animations
+   animation.css — Refined Motion & Scroll Reveals
+   Subtle · Purposeful · No continuous looping pulses
    ============================================================ */
 
-/* ── SCROLL REVEAL ──────────────────────────────────────────── */
+/* ── SCROLL REVEALS ─────────────────────────────────────────── */
 .reveal {
   opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.85s ease, transform 0.85s ease;
+  transform: translateY(14px);
+  transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+  will-change: opacity, transform;
 }
+
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
@@ -15,9 +18,11 @@
 
 .reveal-left {
   opacity: 0;
-  transform: translateX(-28px);
-  transition: opacity 0.85s ease, transform 0.85s ease;
+  transform: translateX(-14px);
+  transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+  will-change: opacity, transform;
 }
+
 .reveal-left.visible {
   opacity: 1;
   transform: translateX(0);
@@ -25,90 +30,63 @@
 
 .reveal-right {
   opacity: 0;
-  transform: translateX(28px);
-  transition: opacity 0.85s ease, transform 0.85s ease;
+  transform: translateX(14px);
+  transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+  will-change: opacity, transform;
 }
+
 .reveal-right.visible {
   opacity: 1;
   transform: translateX(0);
 }
 
-/* ── SCROLL LINE PULSE ──────────────────────────────────────── */
-@keyframes scrollPulse {
-  0%, 100% { opacity: 0.35; transform: scaleY(1); }
-  50%       { opacity: 1;    transform: scaleY(1.15); }
-}
-.scroll-line {
-  animation: scrollPulse 2s ease-in-out infinite;
-  transform-origin: top center;
-}
-
-/* ── FADE IN ────────────────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.fade-in {
-  animation: fadeIn 0.6s ease forwards;
+/* ── MODAL TRANSITIONS ──────────────────────────────────────── */
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* ── SLIDE UP ───────────────────────────────────────────────── */
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.slide-up {
-  animation: slideUp 0.6s ease forwards;
-}
-
-/* ── HOVER: IMAGE ZOOM ──────────────────────────────────────── */
-/* Dipakai oleh news-card dan about-photo */
-.img-zoom-wrap { overflow: hidden; }
-.img-zoom-wrap img {
-  transition: transform 0.7s ease;
-}
-.img-zoom-wrap:hover img {
-  transform: scale(1.05);
-}
-
-/* ── MODAL OPEN ─────────────────────────────────────────────── */
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.97); }
-  to   { opacity: 1; transform: scale(1); }
-}
 #modal.open .modal-inner {
-  animation: modalFadeIn 0.35s ease forwards;
+  animation: modalEnter 0.22s ease-out forwards;
 }
 
-/* ── MOBILE MENU OPEN ───────────────────────────────────────── */
-@keyframes menuSlideIn {
-  from { opacity: 0; transform: translateY(-16px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ── MOBILE MENU ────────────────────────────────────────────── */
+@keyframes mobileFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .mobile-menu.open {
-  animation: menuSlideIn 0.3s ease forwards;
-}
-.mobile-menu.open .mobile-link {
-  animation: slideUp 0.4s ease forwards;
-  opacity: 0;
-}
-.mobile-menu.open .mobile-link:nth-child(2) { animation-delay: 0.08s; }
-.mobile-menu.open .mobile-link:nth-child(3) { animation-delay: 0.14s; }
-.mobile-menu.open .mobile-link:nth-child(4) { animation-delay: 0.20s; }
-.mobile-menu.open .mobile-link:nth-child(5) { animation-delay: 0.26s; }
-
-/* ── PARTY CARD HOVER ───────────────────────────────────────── */
-.party-card::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: transparent;
-  transition: background 0.4s;
-}
-.party-card:hover::after {
-  background: rgba(200, 169, 126, 0.04);
+  animation: mobileFade 0.2s ease-out forwards;
 }
 
-/* ── SPINNER ─────────────────────────────────────────────────── */
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* ── REDUCED MOTION PREFERENCE ──────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-left,
+  .reveal-right,
+  .party-card,
+  .dear-card,
+  .news-card,
+  .hero-card-frame img,
+  .party-media img,
+  .dear-media img,
+  .news-card-img img {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
+    opacity: 1 !important;
+  }
 }
