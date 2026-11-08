@@ -387,23 +387,21 @@
     }
   }
 
-  // ── MOBA JOYSTICK (GESER BEBAS 360° TANPA TEKAN ANALOG KAKU) ──
+  // ── DYNAMIC FLOATING MOBA JOYSTICK (MUNCUL OTOMATIS DI MANA PUN KURSOR DITARUH) ──
   function setupMobaJoystick() {
-    const zone = document.getElementById('mobaJoystickZone');
-    const knob = document.getElementById('mobaJoyKnob');
+    const arena = document.getElementById('retro-game');
     const base = document.getElementById('mobaJoyBase');
-    if (!zone || !knob || !base) return;
+    const knob = document.getElementById('mobaJoyKnob');
+    if (!arena || !base || !knob) return;
 
-    const MAX_DIST = 38; // Radius geser maksimal kenop
+    const MAX_DIST = 36;
     let activePointerId = null;
+    let originX = 0;
+    let originY = 0;
 
     function updateJoystickPosition(clientX, clientY) {
-      const rect = base.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-
-      const dx = clientX - centerX;
-      const dy = clientY - centerY;
+      const dx = clientX - originX;
+      const dy = clientY - originY;
       const distance = Math.hypot(dx, dy);
 
       const angle = Math.atan2(dy, dx);
@@ -414,23 +412,38 @@
 
       knob.style.transform = `translate(${knobX}px, ${knobY}px)`;
 
-      // Normalisasi vektor ke rentang [-1, 1]
       const intensity = clampedDist / MAX_DIST;
       joystickVector.x = Math.cos(angle) * intensity;
       joystickVector.y = Math.sin(angle) * intensity;
       joystickVector.active = true;
-      tapTarget.active = false; // Matikan tap to move saat joystick aktif
+      tapTarget.active = false;
     }
 
-    zone.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
+    arena.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.moba-action-cluster') || e.target.closest('.arcade-hud-mini')) return;
+
       initAudio();
       activePointerId = e.pointerId;
-      zone.setPointerCapture(e.pointerId);
-      updateJoystickPosition(e.clientX, e.clientY);
+      try { arena.setPointerCapture(e.pointerId); } catch {}
+
+      const arenaRect = arena.getBoundingClientRect();
+      const posX = e.clientX - arenaRect.left;
+      const posY = e.clientY - arenaRect.top;
+
+      originX = e.clientX;
+      originY = e.clientY;
+
+      base.style.left = `${posX}px`;
+      base.style.top = `${posY}px`;
+      base.classList.add('active');
+
+      knob.style.transform = 'translate(0px, 0px)';
+      joystickVector.x = 0;
+      joystickVector.y = 0;
+      joystickVector.active = true;
     });
 
-    zone.addEventListener('pointermove', (e) => {
+    arena.addEventListener('pointermove', (e) => {
       if (activePointerId === e.pointerId) {
         e.preventDefault();
         updateJoystickPosition(e.clientX, e.clientY);
@@ -441,14 +454,15 @@
       if (activePointerId === e.pointerId) {
         activePointerId = null;
         knob.style.transform = 'translate(0px, 0px)';
+        base.classList.remove('active');
         joystickVector.x = 0;
         joystickVector.y = 0;
         joystickVector.active = false;
       }
     };
 
-    zone.addEventListener('pointerup', releaseJoystick);
-    zone.addEventListener('pointercancel', releaseJoystick);
+    arena.addEventListener('pointerup', releaseJoystick);
+    arena.addEventListener('pointercancel', releaseJoystick);
   }
 
   // ── DIRECT TOUCH / KLIK PADA LAPANGAN (MOVE TO POINT) ────────

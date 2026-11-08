@@ -25,75 +25,60 @@
         <!-- Canvas Lapangan Stadion 60FPS -->
         <canvas id="soccerGameCanvas"></canvas>
 
-        <!-- Papan Skor Retro HUD di Bagian Atas -->
-        <div class="arcade-hud">
-            <div class="hud-team hud-home">
-                <span class="hud-tag">TUAN RUMAH</span>
-                <span class="hud-team-name">DANGEROUS BOYS</span>
+        <!-- Papan Skor HUD Mini (Kecil di Atas, Tidak Menghalangi Lapangan) -->
+        <div class="arcade-hud-mini">
+            <div class="hud-team-chip home">
+                <span class="hud-dot-home"></span>
+                <span class="hud-mini-name">BJR-18</span>
             </div>
-
-            <div class="hud-center">
-                <div class="hud-score-display" id="hudScoreText">0  -  0</div>
-                <div class="hud-timer" id="hudTimerText">90:00</div>
+            <div class="hud-mini-score" id="hudScoreText">0  -  0</div>
+            <div class="hud-team-chip away">
+                <span class="hud-mini-name">RIVAL</span>
+                <span class="hud-dot-away"></span>
             </div>
-
-            <div class="hud-team hud-away">
-                <span class="hud-tag">TIM LAWAN</span>
-                <span class="hud-team-name">BANJAR RIVAL FC</span>
-            </div>
-
-            <div class="hud-tools">
-                <button id="arcSound" class="hud-tool-btn" title="Aktifkan / Bisukan Suara">🔊</button>
-                <button id="arcReset" class="hud-tool-btn" title="Mulai Ulang Pertandingan">↺</button>
+            <div class="hud-mini-timer" id="hudTimerText">90:00</div>
+            <div class="hud-mini-tools">
+                <button id="arcSound" class="hud-mini-btn" title="Suara">🔊</button>
+                <button id="arcReset" class="hud-mini-btn" title="Reset">↺</button>
             </div>
         </div>
 
-        <!-- MOBA GAME CONTROLS (Geser Bebas 360° & Skill Attack) -->
-        <div class="moba-controls-layer">
-            <!-- Sisi Kiri: MOBA Virtual Joystick 360° (Geser Mengalir Bebas) -->
-            <div class="moba-joystick-wrapper" id="mobaJoystickZone">
-                <div class="moba-joystick-base" id="mobaJoyBase">
-                    <div class="moba-joystick-ring"></div>
-                    <div class="moba-joystick-knob" id="mobaJoyKnob">
-                        <div class="knob-dot"></div>
-                    </div>
-                </div>
-                <span class="moba-control-hint">Geser Bebas 360°</span>
-            </div>
+        <!-- Floating Dynamic Joystick Base (Muncul Otomatis Saat Kursor/Jari Ditaruh di Lapangan) -->
+        <div class="dynamic-joystick-base" id="mobaJoyBase">
+            <div class="dynamic-joystick-ring"></div>
+            <div class="dynamic-joystick-knob" id="mobaJoyKnob"></div>
+        </div>
 
-            <!-- Bagian Tengah: Panduan & Tombol Jelajahi Cerita ke Bawah -->
-            <div class="arcade-center-nav">
-                <div class="arcade-status-tag">★ PERTANDINGAN SEPAK BOLA RETRO BJR-18 ★</div>
-                <div class="moba-play-tip">Geser stik 360° atau sentuh lapangan langsung untuk lari</div>
-                <a href="#hero" class="btn-scroll-down">
-                    <span>Jelajahi Cerita Dangerous Boys</span>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <polyline points="19 12 12 19 5 12"></polyline>
-                    </svg>
-                </a>
-            </div>
-
-            <!-- Sisi Kanan: MOBA Action Skills (Tembak, Oper, Dash) -->
-            <div class="moba-action-cluster">
-                <div class="moba-sub-skills">
-                    <button id="mobaPass" class="moba-skill-btn btn-pass" aria-label="Oper / Umpan">
-                        <span class="skill-name">OPER</span>
-                        <small class="skill-key">[ X ]</small>
-                    </button>
-                    <button id="mobaDash" class="moba-skill-btn btn-dash" aria-label="Dash / Lari Kilat">
-                        <span class="skill-name">DASH</span>
-                        <small class="skill-key">[ Shift ]</small>
-                    </button>
-                </div>
-                <button id="mobaShoot" class="moba-main-attack-btn" aria-label="Tembak Bola ke Gawang">
-                    <span class="attack-icon">⚽</span>
-                    <span class="attack-label">TEMBAK</span>
-                    <small class="attack-key">[ SPASI ]</small>
+        <!-- Tombol Aksi Kanan (Glassmorphic Transparan Tidak Menghalangi Pertandingan) -->
+        <div class="moba-action-cluster">
+            <div class="moba-sub-skills">
+                <button id="mobaPass" class="moba-skill-btn btn-pass" aria-label="Oper / Umpan">
+                    <span class="skill-name">OPER</span>
+                    <small class="skill-key">[ X ]</small>
+                </button>
+                <button id="mobaDash" class="moba-skill-btn btn-dash" aria-label="Dash / Lari Kilat">
+                    <span class="skill-name">DASH</span>
+                    <small class="skill-key">[ Shift ]</small>
                 </button>
             </div>
+            <button id="mobaShoot" class="moba-main-attack-btn" aria-label="Tembak Bola ke Gawang">
+                <span class="attack-icon">⚽</span>
+                <span class="attack-label">TEMBAK</span>
+                <small class="attack-key">[ SPASI ]</small>
+            </button>
         </div>
     </section>
+
+    <!-- TOMBOL GULIR KE DOKUMENTASI (DI LUAR LAPANGAN PERTANDINGAN) -->
+    <div class="game-scroll-divider">
+        <a href="#hero" class="btn-scroll-to-story">
+            <span>Jelajahi Cerita & Dokumentasi Dangerous Boys</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+        </a>
+    </div>
 
     <!-- ═══════════════════════════════════════════════════════════
          HERO SECTION: VINTAGE FILM SPREAD

@@ -1183,249 +1183,164 @@ section {
   image-rendering: crisp-edges;
 }
 
-/* 1. HUD Papan Skor Retro Atas */
-.arcade-hud {
-  position: relative;
-  z-index: 10;
-  margin: 78px auto 0;
-  max-width: 880px;
-  width: calc(100% - 32px);
-  background-color: rgba(15, 23, 42, 0.94);
-  border: 1.5px solid rgba(194, 120, 39, 0.6);
-  border-radius: 4px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  padding: 8px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* 1. HUD Papan Skor Mini (Sleek, Kompak di Atas, Tidak Menghalangi Lapangan) */
+.arcade-hud-mini {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  height: 34px;
+  padding: 0 16px;
+  background-color: rgba(15, 23, 42, 0.72);
   backdrop-filter: blur(8px);
-}
-
-.hud-team {
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
   display: flex;
-  flex-direction: column;
-}
-
-.hud-tag {
-  font-family: var(--font-typewriter);
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
-  color: var(--darkroom-muted);
-}
-
-.hud-team-name {
-  font-family: var(--font-serif);
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-.hud-home .hud-team-name {
-  color: #facc15;
-}
-
-.hud-away .hud-team-name {
-  color: #93c5fd;
-  text-align: right;
-}
-
-.hud-center {
-  display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 12px;
+  user-select: none;
 }
 
-.hud-score-display {
+.hud-team-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-dot-home {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #facc15;
+  box-shadow: 0 0 6px #facc15;
+}
+
+.hud-dot-away {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #60a5fa;
+  box-shadow: 0 0 6px #60a5fa;
+}
+
+.hud-mini-name {
   font-family: var(--font-typewriter);
-  font-size: 1.6rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #facc15;
-  background-color: #020617;
-  padding: 2px 14px;
-  border-radius: 3px;
-  border: 1px solid rgba(250, 204, 21, 0.4);
-  box-shadow: inset 0 0 10px rgba(250, 204, 21, 0.2);
-  letter-spacing: 0.1em;
+  color: #f8fafc;
+  letter-spacing: 0.04em;
 }
 
-.hud-timer {
+.home .hud-mini-name {
+  color: #facc15;
+}
+
+.away .hud-mini-name {
+  color: #93c5fd;
+}
+
+.hud-mini-score {
+  font-family: var(--font-typewriter);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.45);
+  padding: 2px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  letter-spacing: 0.08em;
+}
+
+.hud-mini-timer {
   font-family: var(--font-typewriter);
   font-size: 0.72rem;
   color: #cbd5e1;
-  margin-top: 3px;
 }
 
-.hud-tools {
+.hud-mini-tools {
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.hud-tool-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-  color: #fff;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.hud-tool-btn:hover {
-  background-color: var(--film-amber);
-  color: #12100e;
-}
-
-/* 2. MOBA Game Controls (Virtual Floating Joystick 360° & Skills) */
-.moba-controls-layer {
-  position: relative;
-  z-index: 10;
-  padding: 12px 28px 22px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  width: 100%;
-  pointer-events: none;
-}
-
-/* Sisi Kiri: MOBA Virtual Joystick 360° */
-.moba-joystick-wrapper {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 6px;
-  pointer-events: auto;
-  user-select: none;
-  touch-action: none;
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.moba-joystick-base {
-  position: relative;
-  width: 112px;
-  height: 112px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.94) 100%);
-  border: 2px solid rgba(250, 204, 21, 0.45);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), inset 0 0 14px rgba(250, 204, 21, 0.2);
+.hud-mini-btn {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(8px);
-  cursor: grab;
+  transition: color 0.15s ease;
 }
 
-.moba-joystick-base:active {
-  cursor: grabbing;
+.hud-mini-btn:hover {
+  color: #facc15;
 }
 
-.moba-joystick-ring {
+/* 2. Floating Dynamic Joystick (Muncul Otomatis Saat Disentuh / Diklik di Manapun) */
+.dynamic-joystick-base {
   position: absolute;
-  width: 76px;
-  height: 76px;
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
-  border: 1.5px dashed rgba(255, 255, 255, 0.22);
+  background: radial-gradient(circle, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1.5px solid rgba(250, 204, 21, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 0 14px rgba(250, 204, 21, 0.15);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 12;
+  will-change: transform, left, top;
+}
+
+.dynamic-joystick-base.active {
+  opacity: 0.9;
+}
+
+.dynamic-joystick-ring {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
   pointer-events: none;
 }
 
-.moba-joystick-knob {
+.dynamic-joystick-knob {
   position: absolute;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #475569, #1e293b);
   border: 2px solid #facc15;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.35);
   pointer-events: none;
   transition: transform 0.03s linear;
   will-change: transform;
 }
 
-.knob-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: #facc15;
-  box-shadow: 0 0 8px #facc15;
-}
-
-.moba-control-hint {
-  font-family: var(--font-typewriter);
-  font-size: 0.65rem;
-  color: #facc15;
-  letter-spacing: 0.08em;
-  background-color: rgba(15, 23, 42, 0.88);
-  padding: 2px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(250, 204, 21, 0.3);
-}
-
-/* Navigasi Gulir ke Bawah (Tengah) */
-.arcade-center-nav {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  pointer-events: auto;
-  margin-bottom: 4px;
-}
-
-.arcade-status-tag {
-  font-family: var(--font-typewriter);
-  font-size: 0.7rem;
-  color: #facc15;
-  letter-spacing: 0.12em;
-  background-color: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(250, 204, 21, 0.3);
-  padding: 3px 12px;
-  border-radius: 2px;
-}
-
-.moba-play-tip {
-  font-family: var(--font-typewriter);
-  font-size: 0.68rem;
-  color: #94a3b8;
-}
-
-.btn-scroll-down {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 22px;
-  background-color: var(--paper-cream);
-  color: var(--ink-carbon);
-  font-family: var(--font-typewriter);
-  font-size: 0.8rem;
-  font-weight: 700;
-  border-radius: 30px;
-  border: 1.5px solid var(--paper-edge);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
-  transition: all 0.2s ease;
-  animation: bounceHint 2s infinite ease-in-out;
-}
-
-.btn-scroll-down:hover {
-  background-color: var(--film-amber);
-  color: #fff;
-  transform: translateY(-2px);
-}
-
-@keyframes bounceHint {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-
-/* Sisi Kanan: MOBA Skills Cluster */
+/* 3. Tombol Aksi Glassmorphic Transparan (Tidak Menghalangi Lapangan) */
 .moba-action-cluster {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 15;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 14px;
   pointer-events: auto;
   user-select: none;
@@ -1446,27 +1361,28 @@ section {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  transition: transform 0.08s ease, filter 0.08s ease;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
   touch-action: manipulation;
 }
 
 .moba-skill-btn:active {
   transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.25);
+  border-color: #facc15;
 }
 
-.btn-pass {
-  background: radial-gradient(circle at 35% 35%, #2563eb, #1e40af);
-  border-color: #60a5fa;
-  color: #ffffff;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45);
+.btn-pass .skill-name {
+  color: #93c5fd;
 }
 
-.btn-dash {
-  background: radial-gradient(circle at 35% 35%, #059669, #065f46);
-  border-color: #34d399;
-  color: #ffffff;
-  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.45);
+.btn-dash .skill-name {
+  color: #86efac;
 }
 
 .skill-name {
@@ -1482,27 +1398,31 @@ section {
   opacity: 0.85;
 }
 
-/* Tombol Tembak Utama MOBA */
+/* Tombol Tembak Utama Glassmorphic */
 .moba-main-attack-btn {
   width: 82px;
   height: 82px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ef4444, #991b1b);
-  border: 3px solid #fca5a5;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: #ffffff;
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.35);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
   touch-action: manipulation;
 }
 
 .moba-main-attack-btn:active {
   transform: scale(0.92);
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  background: rgba(255, 255, 255, 0.28);
+  border-color: #fca5a5;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
 }
 
 .attack-icon {
@@ -1515,12 +1435,53 @@ section {
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.04em;
+  color: #ffffff;
 }
 
 .attack-key {
   font-family: var(--font-typewriter);
   font-size: 0.55rem;
   opacity: 0.9;
+}
+
+/* 4. Pembatas & Tombol Gulir ke Cerita (Di Luar Lapangan Pertandingan) */
+.game-scroll-divider {
+  width: 100%;
+  background-color: var(--darkroom-bg);
+  border-bottom: 1px solid var(--paper-edge);
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-scroll-to-story {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  background-color: var(--paper-cream);
+  color: var(--ink-carbon);
+  font-family: var(--font-typewriter);
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 30px;
+  border: 1.5px solid var(--paper-edge);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  animation: bounceHint 2s infinite ease-in-out;
+}
+
+.btn-scroll-to-story:hover {
+  background-color: var(--film-amber);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(194, 120, 39, 0.35);
+}
+
+@keyframes bounceHint {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
 /* ── 13. RESPONSIVE BREAKPOINTS (LAPTOP, TABLET, HANDPHONE) ─── */
@@ -1659,58 +1620,25 @@ section {
     height: 100svh;
     min-height: 520px;
   }
-  .arcade-hud {
-    width: calc(100% - 20px);
-    margin: 66px auto 0;
-    padding: 6px 12px;
-  }
-  .hud-team-name {
-    font-size: 0.85rem;
-  }
-  .hud-score-display {
-    font-size: 1.25rem;
-    padding: 2px 8px;
-  }
-  .moba-controls-layer {
-    padding: 8px 12px 14px;
-    flex-wrap: wrap;
-    justify-content: space-between;
+  .arcade-hud-mini {
+    top: 10px;
+    padding: 0 10px;
     gap: 8px;
+    height: 30px;
   }
-  .arcade-center-nav {
-    order: -1;
-    width: 100%;
-    margin-bottom: 2px;
+  .hud-mini-name {
+    font-size: 0.68rem;
   }
-  .arcade-status-tag {
-    font-size: 0.6rem;
-    padding: 2px 8px;
+  .hud-mini-score {
+    font-size: 0.85rem;
+    padding: 1px 6px;
   }
-  .moba-play-tip {
-    font-size: 0.62rem;
+  .hud-mini-timer {
+    font-size: 0.65rem;
   }
-  .btn-scroll-down {
-    padding: 7px 16px;
-    font-size: 0.72rem;
-  }
-  /* Joystick di HP */
-  .moba-joystick-base {
-    width: 92px;
-    height: 92px;
-  }
-  .moba-joystick-ring {
-    width: 60px;
-    height: 60px;
-  }
-  .moba-joystick-knob {
-    width: 40px;
-    height: 40px;
-  }
-  .moba-control-hint {
-    font-size: 0.6rem;
-  }
-  /* Skills di HP */
   .moba-action-cluster {
+    bottom: 16px;
+    right: 16px;
     gap: 10px;
   }
   .moba-skill-btn {
@@ -1718,17 +1646,26 @@ section {
     height: 44px;
   }
   .skill-name {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
   }
   .moba-main-attack-btn {
-    width: 68px;
-    height: 68px;
+    width: 66px;
+    height: 66px;
   }
   .attack-icon {
     font-size: 1.15rem;
   }
   .attack-label {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
+  }
+  .game-scroll-divider {
+    padding: 14px 16px;
+  }
+  .btn-scroll-to-story {
+    padding: 10px 20px;
+    font-size: 0.78rem;
+    width: 100%;
+    justify-content: center;
   }
 }
 
