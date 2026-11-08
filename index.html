@@ -48,26 +48,23 @@
             </div>
         </div>
 
-        <!-- Tombol Fisik Bulat Arcade Kontroler -->
-        <div class="arcade-bottom-panel">
-            <!-- D-Pad Bulat Kiri (Arah Gerak) -->
-            <div class="arcade-dpad-cluster">
-                <div class="dpad-row">
-                    <button id="arcUp" class="round-dpad-btn" aria-label="Maju / Sundulan">▲</button>
+        <!-- MOBA GAME CONTROLS (Geser Bebas 360° & Skill Attack) -->
+        <div class="moba-controls-layer">
+            <!-- Sisi Kiri: MOBA Virtual Joystick 360° (Geser Mengalir Bebas) -->
+            <div class="moba-joystick-wrapper" id="mobaJoystickZone">
+                <div class="moba-joystick-base" id="mobaJoyBase">
+                    <div class="moba-joystick-ring"></div>
+                    <div class="moba-joystick-knob" id="mobaJoyKnob">
+                        <div class="knob-dot"></div>
+                    </div>
                 </div>
-                <div class="dpad-row dpad-middle">
-                    <button id="arcLeft" class="round-dpad-btn" aria-label="Lari Kiri">◀</button>
-                    <div class="dpad-core"></div>
-                    <button id="arcRight" class="round-dpad-btn" aria-label="Lari Kanan">▶</button>
-                </div>
-                <div class="dpad-row">
-                    <button id="arcDown" class="round-dpad-btn" aria-label="Mundur / Bertahan">▼</button>
-                </div>
+                <span class="moba-control-hint">Geser Bebas 360°</span>
             </div>
 
-            <!-- Navigasi Gulir ke Cerita Utama -->
+            <!-- Bagian Tengah: Panduan & Tombol Jelajahi Cerita ke Bawah -->
             <div class="arcade-center-nav">
                 <div class="arcade-status-tag">★ PERTANDINGAN SEPAK BOLA RETRO BJR-18 ★</div>
+                <div class="moba-play-tip">Geser stik 360° atau sentuh lapangan langsung untuk lari</div>
                 <a href="#hero" class="btn-scroll-down">
                     <span>Jelajahi Cerita Dangerous Boys</span>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -77,21 +74,22 @@
                 </a>
             </div>
 
-            <!-- Tombol Aksi Bulat Kanan -->
-            <div class="arcade-action-cluster">
-                <div class="action-btn-sub">
-                    <button id="arcPass" class="round-arcade-btn btn-blue" aria-label="Oper Bola">
-                        <span>OPER</span>
-                        <small>[ X ]</small>
+            <!-- Sisi Kanan: MOBA Action Skills (Tembak, Oper, Dash) -->
+            <div class="moba-action-cluster">
+                <div class="moba-sub-skills">
+                    <button id="mobaPass" class="moba-skill-btn btn-pass" aria-label="Oper / Umpan">
+                        <span class="skill-name">OPER</span>
+                        <small class="skill-key">[ X ]</small>
                     </button>
-                    <button id="arcSprint" class="round-arcade-btn btn-gold" aria-label="Lari Kencang">
-                        <span>TURBO</span>
-                        <small>[ Shift ]</small>
+                    <button id="mobaDash" class="moba-skill-btn btn-dash" aria-label="Dash / Lari Kilat">
+                        <span class="skill-name">DASH</span>
+                        <small class="skill-key">[ Shift ]</small>
                     </button>
                 </div>
-                <button id="arcShoot" class="round-arcade-btn btn-red btn-large" aria-label="Tendang Bola ke Gawang">
-                    <span>TENDANG</span>
-                    <small>[ SPASI ]</small>
+                <button id="mobaShoot" class="moba-main-attack-btn" aria-label="Tembak Bola ke Gawang">
+                    <span class="attack-icon">⚽</span>
+                    <span class="attack-label">TEMBAK</span>
+                    <small class="attack-key">[ SPASI ]</small>
                 </button>
             </div>
         </div>

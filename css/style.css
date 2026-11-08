@@ -1281,11 +1281,11 @@ section {
   color: #12100e;
 }
 
-/* 2. Panel Kontroler Bawah (Tactile Round Arcade Hardware) */
-.arcade-bottom-panel {
+/* 2. MOBA Game Controls (Virtual Floating Joystick 360° & Skills) */
+.moba-controls-layer {
   position: relative;
   z-index: 10;
-  padding: 16px 28px 24px;
+  padding: 12px 28px 22px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -1293,61 +1293,78 @@ section {
   pointer-events: none;
 }
 
-/* Cluster D-Pad Bulat Kiri */
-.arcade-dpad-cluster {
+/* Sisi Kiri: MOBA Virtual Joystick 360° */
+.moba-joystick-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 6px;
   pointer-events: auto;
-  background-color: rgba(15, 23, 42, 0.88);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  padding: 8px;
-  border-radius: 50%;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-}
-
-.dpad-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dpad-middle {
-  gap: 4px;
-}
-
-.dpad-core {
-  width: 22px;
-  height: 22px;
-  background-color: #0f172a;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.round-dpad-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #334155, #1e293b);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  color: #f1f5f9;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 0 #0f172a, 0 6px 12px rgba(0, 0, 0, 0.4);
-  transition: all 0.08s ease;
   user-select: none;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
-.round-dpad-btn:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #0f172a, 0 2px 4px rgba(0, 0, 0, 0.4);
-  background: #facc15;
-  color: #0f172a;
+.moba-joystick-base {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.94) 100%);
+  border: 2px solid rgba(250, 204, 21, 0.45);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), inset 0 0 14px rgba(250, 204, 21, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  cursor: grab;
+}
+
+.moba-joystick-base:active {
+  cursor: grabbing;
+}
+
+.moba-joystick-ring {
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+}
+
+.moba-joystick-knob {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #475569, #1e293b);
+  border: 2px solid #facc15;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform 0.03s linear;
+  will-change: transform;
+}
+
+.knob-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #facc15;
+  box-shadow: 0 0 8px #facc15;
+}
+
+.moba-control-hint {
+  font-family: var(--font-typewriter);
+  font-size: 0.65rem;
+  color: #facc15;
+  letter-spacing: 0.08em;
+  background-color: rgba(15, 23, 42, 0.88);
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.3);
 }
 
 /* Navigasi Gulir ke Bawah (Tengah) */
@@ -1355,9 +1372,9 @@ section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   pointer-events: auto;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .arcade-status-tag {
@@ -1371,11 +1388,17 @@ section {
   border-radius: 2px;
 }
 
+.moba-play-tip {
+  font-family: var(--font-typewriter);
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
 .btn-scroll-down {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 22px;
+  padding: 9px 22px;
   background-color: var(--paper-cream);
   color: var(--ink-carbon);
   font-family: var(--font-typewriter);
@@ -1399,94 +1422,105 @@ section {
   50% { transform: translateY(-4px); }
 }
 
-/* Cluster Tombol Aksi Bulat Kanan */
-.arcade-action-cluster {
+/* Sisi Kanan: MOBA Skills Cluster */
+.moba-action-cluster {
   display: flex;
   align-items: center;
   gap: 14px;
   pointer-events: auto;
-  background-color: rgba(15, 23, 42, 0.88);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  padding: 12px 16px;
-  border-radius: 40px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
+  user-select: none;
 }
 
-.action-btn-sub {
+.moba-sub-skills {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.round-arcade-btn {
+.moba-skill-btn {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  user-select: none;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.08s ease, filter 0.08s ease;
   touch-action: manipulation;
-  transition: all 0.08s ease;
 }
 
-.round-arcade-btn span {
+.moba-skill-btn:active {
+  transform: scale(0.92);
+}
+
+.btn-pass {
+  background: radial-gradient(circle at 35% 35%, #2563eb, #1e40af);
+  border-color: #60a5fa;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45);
+}
+
+.btn-dash {
+  background: radial-gradient(circle at 35% 35%, #059669, #065f46);
+  border-color: #34d399;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.45);
+}
+
+.skill-name {
   font-family: var(--font-typewriter);
+  font-size: 0.72rem;
   font-weight: 700;
   line-height: 1;
 }
 
-.round-arcade-btn small {
+.skill-key {
+  font-family: var(--font-typewriter);
+  font-size: 0.52rem;
+  opacity: 0.85;
+}
+
+/* Tombol Tembak Utama MOBA */
+.moba-main-attack-btn {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ef4444, #991b1b);
+  border: 3px solid #fca5a5;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  touch-action: manipulation;
+}
+
+.moba-main-attack-btn:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+.attack-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.attack-label {
+  font-family: var(--font-typewriter);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.attack-key {
   font-family: var(--font-typewriter);
   font-size: 0.55rem;
-  opacity: 0.8;
-  margin-top: 2px;
-}
-
-.btn-blue {
-  width: 48px;
-  height: 48px;
-  background: radial-gradient(circle at 35% 35%, #3b82f6, #1d4ed8);
-  border: 2px solid #60a5fa;
-  color: #ffffff;
-  font-size: 0.68rem;
-  box-shadow: 0 5px 0 #1e3a8a, 0 6px 12px rgba(0, 0, 0, 0.5);
-}
-
-.btn-blue:active {
-  transform: translateY(4px);
-  box-shadow: 0 1px 0 #1e3a8a, 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.btn-gold {
-  width: 48px;
-  height: 48px;
-  background: radial-gradient(circle at 35% 35%, #facc15, #ca8a04);
-  border: 2px solid #fef08a;
-  color: #1e1b4b;
-  font-size: 0.68rem;
-  box-shadow: 0 5px 0 #854d0e, 0 6px 12px rgba(0, 0, 0, 0.5);
-}
-
-.btn-gold:active {
-  transform: translateY(4px);
-  box-shadow: 0 1px 0 #854d0e, 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.btn-red {
-  width: 68px;
-  height: 68px;
-  background: radial-gradient(circle at 35% 35%, #ef4444, #b91c1c);
-  border: 2.5px solid #fca5a5;
-  color: #ffffff;
-  font-size: 0.78rem;
-  box-shadow: 0 6px 0 #7f1d1d, 0 8px 16px rgba(0, 0, 0, 0.6);
-}
-
-.btn-red:active {
-  transform: translateY(5px);
-  box-shadow: 0 1px 0 #7f1d1d, 0 2px 4px rgba(0, 0, 0, 0.6);
+  opacity: 0.9;
 }
 
 /* ── 13. RESPONSIVE BREAKPOINTS (LAPTOP, TABLET, HANDPHONE) ─── */
@@ -1637,8 +1671,8 @@ section {
     font-size: 1.25rem;
     padding: 2px 8px;
   }
-  .arcade-bottom-panel {
-    padding: 8px 12px 16px;
+  .moba-controls-layer {
+    padding: 8px 12px 14px;
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 8px;
@@ -1646,38 +1680,54 @@ section {
   .arcade-center-nav {
     order: -1;
     width: 100%;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .arcade-status-tag {
     font-size: 0.6rem;
     padding: 2px 8px;
   }
+  .moba-play-tip {
+    font-size: 0.62rem;
+  }
   .btn-scroll-down {
-    padding: 8px 16px;
+    padding: 7px 16px;
     font-size: 0.72rem;
   }
-  .round-dpad-btn {
-    width: 38px;
-    height: 38px;
-    font-size: 0.75rem;
+  /* Joystick di HP */
+  .moba-joystick-base {
+    width: 92px;
+    height: 92px;
   }
-  .dpad-core {
-    width: 18px;
-    height: 18px;
+  .moba-joystick-ring {
+    width: 60px;
+    height: 60px;
   }
-  .arcade-action-cluster {
-    padding: 8px 12px;
-    gap: 10px;
-    border-radius: 30px;
-  }
-  .btn-blue, .btn-gold {
+  .moba-joystick-knob {
     width: 40px;
     height: 40px;
+  }
+  .moba-control-hint {
     font-size: 0.6rem;
   }
-  .btn-red {
-    width: 54px;
-    height: 54px;
+  /* Skills di HP */
+  .moba-action-cluster {
+    gap: 10px;
+  }
+  .moba-skill-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .skill-name {
+    font-size: 0.65rem;
+  }
+  .moba-main-attack-btn {
+    width: 68px;
+    height: 68px;
+  }
+  .attack-icon {
+    font-size: 1.15rem;
+  }
+  .attack-label {
     font-size: 0.68rem;
   }
 }

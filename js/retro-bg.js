@@ -1,7 +1,7 @@
 // ============================================================
-//  js/retro-bg.js — REAL RETRO ARCADE SOCCER STADIUM ENGINE
-//  Dangerous Boys Stadium · 2.5D Real Pitch · 2 Gawang & Kiper
-//  Arcade Round Buttons · Fisika Pantul & Gol Realistis · 60 FPS
+//  js/retro-bg.js — REAL RETRO MOBA SOCCER STADIUM ENGINE
+//  Kendali Geser Bebas 360° Ala Mobile Legends (Virtual Joystick)
+//  Direct Pitch Tap · 2 Gawang & Kiper AI · 60 FPS Locked
 // ============================================================
 
 (function () {
@@ -26,17 +26,29 @@
   let ctx = null;
   let animId = null;
   let isPaused = false;
-  let currentMode = 'soccer'; // 'soccer' atau 'mario'
   let lastTime = 0;
 
   // Skor & Timer Pertandingan
   let scorePlayer = 0; // Dangerous Boys (BJR-18)
   let scoreCPU = 0;    // Banjar Rival FC
-  let matchTime = 90 * 60; // 90 menit virtual (menghitung mundur)
+  let matchTime = 90 * 60; // 90 menit virtual
   let goalCelebrationTimer = 0;
   let goalScorer = ''; // 'player' | 'cpu'
   let goalParticles = [];
-  let whistleFlash = 0;
+
+  // Vektor Gerak MOBA Bebas 360°
+  const joystickVector = { x: 0, y: 0, active: false };
+  const tapTarget = { x: 0, y: 0, active: false };
+
+  // Status Tombol Skill
+  const input = {
+    left: false,
+    right: false,
+    up: false,
+    down: false,
+    sprint: false,
+    sprintCooldown: 0,
+  };
 
   // Audio Sintesis Retro (Web Audio API)
   let audioCtx = null;
@@ -72,13 +84,20 @@
       } else if (type === 'shoot') {
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + 0.16);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.18);
         gain.gain.setValueAtTime(0.4, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
         osc.start(now);
-        osc.stop(now + 0.16);
+        osc.stop(now + 0.18);
+      } else if (type === 'dash') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(640, now + 0.12);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.12);
       } else if (type === 'goal') {
-        // Melodi kemenangan gol 8-bit
         const freqs = [330, 392, 493.88, 587.33, 659.25, 783.99];
         freqs.forEach((f, idx) => {
           const o = audioCtx.createOscillator();
@@ -93,7 +112,6 @@
           o.stop(now + (idx + 1) * 0.08);
         });
       } else if (type === 'whistle') {
-        // Peluit wasit retro
         osc.type = 'square';
         osc.frequency.setValueAtTime(1400, now);
         osc.frequency.setValueAtTime(1800, now + 0.08);
@@ -102,8 +120,7 @@
         osc.start(now);
         osc.stop(now + 0.25);
       } else if (type === 'save') {
-        // Kiper menepis bola
-        osc.type = 'noise' in osc ? 'noise' : 'square';
+        osc.type = 'square';
         osc.frequency.setValueAtTime(280, now);
         osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
         gain.gain.setValueAtTime(0.3, now);
@@ -112,23 +129,22 @@
         osc.stop(now + 0.1);
       }
     } catch {
-      // Audio fallback aman
+      // Audio fallback
     }
   }
 
-  // ── PALET RETRO ARCADE ─────────────────────────────────────────
+  // ── PALET PIXEL RETRO ─────────────────────────────────────────
   const PALETTE = {
     '.': null,
-    'K': '#181512', // Hitam Karbon
-    'W': '#ffffff', // Putih
-    'P': '#fdcca0', // Kulit Peach
-    'G': '#c27827', // Emas Jersey Dangerous Boys
-    'R': '#d63220', // Merah Retro
-    'B': '#1d4ed8', // Biru Retro Jersey Lawan
-    'Y': '#facc15', // Kuning Koin
-    'O': '#78350f', // Rambut Cokelat
-    'L': '#15803d', // Hijau Kiper
-    'S': '#64748b', // Abu-Abu Sepatu
+    'K': '#181512',
+    'W': '#ffffff',
+    'P': '#fdcca0',
+    'G': '#c27827',
+    'R': '#d63220',
+    'B': '#1d4ed8',
+    'Y': '#facc15',
+    'O': '#78350f',
+    'L': '#15803d',
   };
 
   function drawPixelMatrix(context, matrix, startX, startY, pixelSize = 2, flipX = false) {
@@ -148,9 +164,7 @@
     }
   }
 
-  // ── SPRITE PIXEL ART KARAKTER (12x14 PIXELS) ─────────────────
-
-  // 1. Pemain Dangerous Boys (Jersey Emas BJR-18)
+  // ── SPRITES PIXEL ART ────────────────────────────────────────
   const SPRITE_P1_RUN_1 = [
     "...OOOOOO...",
     "...PPPPPP...",
@@ -210,7 +224,6 @@
     "..RR....RR..",
   ];
 
-  // 2. Pemain Lawan (Jersey Biru / Banjar Rival FC)
   const SPRITE_OPP_RUN_1 = [
     "...KKKKKK...",
     "...PPPPPP...",
@@ -241,7 +254,6 @@
     "..KK......KK",
   ];
 
-  // 3. Kiper (Jersey Hijau Terang)
   const SPRITE_GK = [
     "...KKKKKK...",
     "...PPPPPP...",
@@ -256,7 +268,6 @@
     "..YY....YY..",
   ];
 
-  // 4. Bola Sepak Retro (8x8)
   const SPRITE_BALL = [
     "..KKKK..",
     ".KWWWWK.",
@@ -268,60 +279,11 @@
     "..KKKK..",
   ];
 
-  // 5. Mario Bros Retro
-  const SPRITE_MARIO_RUN_1 = [
-    "....RRRRR....",
-    "...RRRRRRRRR.",
-    "...OORRPPO...",
-    "..OPOOPPPO...",
-    "..OPOOOPPPO..",
-    "..OOPPPPPOO..",
-    "....PPPPPPP..",
-    "...RRBRRR....",
-    "..RRRBRRRBR..",
-    ".RRRRBBBBRRR.",
-    ".PPRBBYBBRRP.",
-    ".PPBBBBBBRPP.",
-    "...BBBBBB....",
-    "..OOOOOOOO...",
-    ".OOOO..OOOO..",
-  ];
-
-  const SPRITE_MARIO_RUN_2 = [
-    "....RRRRR....",
-    "...RRRRRRRRR.",
-    "...OORRPPO...",
-    "..OPOOPPPO...",
-    "..OPOOOPPPO..",
-    "..OOPPPPPOO..",
-    "....PPPPPPP..",
-    "..RRRBRRR....",
-    ".RRRRBRRRBR..",
-    ".PPRRBBBBRRR.",
-    ".PPBBBYBBRRP.",
-    "...BBBBBB....",
-    "...OOO..OOO..",
-    "..OOOO...OOO.",
-  ];
-
-  // ── ENTITAS PERTANDINGAN ─────────────────────────────────────
-
-  // Status Input Kontrol
-  const input = {
-    left: false,
-    right: false,
-    up: false,
-    down: false,
-    shoot: false,
-    pass: false,
-    sprint: false,
-  };
-
-  // Bola Sepak dengan Fisika 2.5D (x, y, z ketinggian)
+  // ── ENTITAS LAPANGAN ─────────────────────────────────────────
   const ball = {
     x: V_WIDTH / 2,
     y: (PITCH_TOP + PITCH_BOTTOM) / 2,
-    z: 0, // Ketinggian di atas tanah
+    z: 0,
     vx: 0,
     vy: 0,
     vz: 0,
@@ -338,66 +300,57 @@
     }
   };
 
-  // Pemain Anda: BJR-18 Dangerous Boys (Penyerang No. 10)
   const player = {
     x: 220,
     y: 200,
     vx: 0,
     vy: 0,
-    speed: 2.2,
-    facing: 1, // 1 = kanan, -1 = kiri
-    state: 'idle', // 'idle' | 'run' | 'kick' | 'celebrate'
+    baseSpeed: 2.6,
+    facing: 1,
+    state: 'idle',
     frame: 0,
     animTimer: 0,
     kickTimer: 0,
+    dashTimer: 0,
   };
 
-  // Teman Setim (AI Dangerous Boys No. 7)
   const teammate = {
     x: 180,
     y: 130,
-    vx: 0,
-    vy: 0,
     speed: 1.8,
     facing: 1,
     frame: 0,
     animTimer: 0,
   };
 
-  // Bek Lawan (AI Banjar Rival FC No. 4)
   const opponent = {
     x: 420,
     y: 200,
     vx: 0,
     vy: 0,
-    speed: 1.7,
+    speed: 1.8,
     facing: -1,
     frame: 0,
     animTimer: 0,
-    tackleTimer: 0,
   };
 
-  // Kiper Kanan (Kiper Lawan)
   const goalieRight = {
     x: 590,
     y: 200,
     vy: 1.2,
     minY: GOAL_Y_TOP + 10,
     maxY: GOAL_Y_BOTTOM - 10,
-    diveTimer: 0,
   };
 
-  // Kiper Kiri (Kiper Dangerous Boys)
   const goalieLeft = {
     x: 46,
     y: 200,
     vy: 1.0,
     minY: GOAL_Y_TOP + 10,
     maxY: GOAL_Y_BOTTOM - 10,
-    diveTimer: 0,
   };
 
-  // ── INISIALISASI CANVAS & KONTROLER ─────────────────────────
+  // ── INISIALISASI ENGINE ─────────────────────────────────────
   function initGame() {
     canvas = document.getElementById('soccerGameCanvas');
     if (!canvas) return;
@@ -407,10 +360,12 @@
     canvas.height = V_HEIGHT;
     ctx.imageSmoothingEnabled = false;
 
-    // Pasang tombol kontroler arcade nyata (D-Pad bulat & Tombol aksi bulat)
-    setupArcadeControls();
+    // Pasang MOBA Virtual Joystick & Action Buttons
+    setupMobaJoystick();
+    setupMobaActionButtons();
+    setupPitchDirectTouch();
 
-    // Event listener keyboard
+    // Event Keyboard
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
@@ -418,7 +373,7 @@
     window.addEventListener('resize', handleCanvasResize);
     handleCanvasResize();
 
-    // Loop
+    // Game loop
     lastTime = performance.now();
     animId = requestAnimationFrame(gameLoop);
   }
@@ -432,52 +387,171 @@
     }
   }
 
-  // ── KEYBOARD HANDLERS ───────────────────────────────────────
-  function handleKeyDown(e) {
-    initAudio();
+  // ── MOBA JOYSTICK (GESER BEBAS 360° TANPA TEKAN ANALOG KAKU) ──
+  function setupMobaJoystick() {
+    const zone = document.getElementById('mobaJoystickZone');
+    const knob = document.getElementById('mobaJoyKnob');
+    const base = document.getElementById('mobaJoyBase');
+    if (!zone || !knob || !base) return;
 
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
-    if (e.code === 'ArrowUp' || e.code === 'KeyW') input.up = true;
-    if (e.code === 'ArrowDown' || e.code === 'KeyS') input.down = true;
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') input.sprint = true;
+    const MAX_DIST = 38; // Radius geser maksimal kenop
+    let activePointerId = null;
 
-    if (e.code === 'Space' || e.code === 'KeyK') {
-      input.shoot = true;
-      executeShoot();
+    function updateJoystickPosition(clientX, clientY) {
+      const rect = base.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const dx = clientX - centerX;
+      const dy = clientY - centerY;
+      const distance = Math.hypot(dx, dy);
+
+      const angle = Math.atan2(dy, dx);
+      const clampedDist = Math.min(distance, MAX_DIST);
+
+      const knobX = Math.cos(angle) * clampedDist;
+      const knobY = Math.sin(angle) * clampedDist;
+
+      knob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+
+      // Normalisasi vektor ke rentang [-1, 1]
+      const intensity = clampedDist / MAX_DIST;
+      joystickVector.x = Math.cos(angle) * intensity;
+      joystickVector.y = Math.sin(angle) * intensity;
+      joystickVector.active = true;
+      tapTarget.active = false; // Matikan tap to move saat joystick aktif
     }
-    if (e.code === 'KeyJ' || e.code === 'KeyX') {
-      input.pass = true;
-      executePass();
+
+    zone.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      initAudio();
+      activePointerId = e.pointerId;
+      zone.setPointerCapture(e.pointerId);
+      updateJoystickPosition(e.clientX, e.clientY);
+    });
+
+    zone.addEventListener('pointermove', (e) => {
+      if (activePointerId === e.pointerId) {
+        e.preventDefault();
+        updateJoystickPosition(e.clientX, e.clientY);
+      }
+    });
+
+    const releaseJoystick = (e) => {
+      if (activePointerId === e.pointerId) {
+        activePointerId = null;
+        knob.style.transform = 'translate(0px, 0px)';
+        joystickVector.x = 0;
+        joystickVector.y = 0;
+        joystickVector.active = false;
+      }
+    };
+
+    zone.addEventListener('pointerup', releaseJoystick);
+    zone.addEventListener('pointercancel', releaseJoystick);
+  }
+
+  // ── DIRECT TOUCH / KLIK PADA LAPANGAN (MOVE TO POINT) ────────
+  function setupPitchDirectTouch() {
+    if (!canvas) return;
+
+    canvas.addEventListener('pointerdown', (e) => {
+      // Cegah bentrok bila menekan tombol HUD
+      if (e.target.closest('.arcade-hud') || e.target.closest('.arcade-bottom-panel')) return;
+
+      initAudio();
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = V_WIDTH / rect.width;
+      const scaleY = V_HEIGHT / rect.height;
+
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+
+      // Jangan terima klik di area tribun penonton atas
+      if (clickY < PITCH_TOP) return;
+
+      tapTarget.x = clickX;
+      tapTarget.y = clickY;
+      tapTarget.active = true;
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      // Dragging langsung di atas lapangan mengarahkan pemain mengikuti jari
+      if (e.buttons === 1) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = V_WIDTH / rect.width;
+        const scaleY = V_HEIGHT / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+        if (clickY >= PITCH_TOP) {
+          tapTarget.x = clickX;
+          tapTarget.y = clickY;
+          tapTarget.active = true;
+        }
+      }
+    });
+  }
+
+  // ── TOMBOL AKSI SKILL MOBA (RIGHT CLUSTER) ───────────────────
+  function setupMobaActionButtons() {
+    const bindAction = (id, onTrigger) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const act = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        initAudio();
+        onTrigger();
+      };
+      btn.addEventListener('pointerdown', act);
+    };
+
+    // 1. Tembak Gol Keras (Skill Utama / Basic Attack)
+    bindAction('mobaShoot', executeShoot);
+
+    // 2. Oper Umpan Terobosan (Skill 1)
+    bindAction('mobaPass', executePass);
+
+    // 3. Sprint / Dash Kilat (Skill 2 / Flicker)
+    bindAction('mobaDash', executeDash);
+
+    // Sound & Reset
+    const btnSound = document.getElementById('arcSound');
+    if (btnSound) {
+      btnSound.addEventListener('click', () => {
+        initAudio();
+        soundEnabled = !soundEnabled;
+        btnSound.textContent = soundEnabled ? '🔊' : '🔇';
+      });
+    }
+
+    const btnReset = document.getElementById('arcReset');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        scorePlayer = 0;
+        scoreCPU = 0;
+        matchTime = 90 * 60;
+        resetKickoff();
+        playRetroSound('whistle');
+      });
     }
   }
 
-  function handleKeyUp(e) {
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
-    if (e.code === 'ArrowUp' || e.code === 'KeyW') input.up = false;
-    if (e.code === 'ArrowDown' || e.code === 'KeyS') input.down = false;
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') input.sprint = false;
-    if (e.code === 'Space' || e.code === 'KeyK') input.shoot = false;
-    if (e.code === 'KeyJ' || e.code === 'KeyX') input.pass = false;
-  }
-
-  // ── AKSI MENEMBAK & MENGOPER BOLA ────────────────────────────
+  // ── AKSI TEMBAKAN, UMPAN, & DASH ─────────────────────────────
   function executeShoot() {
     const dist = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
-    if (dist < 26) {
+    if (dist < 28) {
       player.state = 'kick';
       player.kickTimer = 0.25;
 
-      // Arah tembakan menuju gawang kanan (gawang lawan)
-      const targetGoalX = PITCH_RIGHT + 10;
+      const targetGoalX = PITCH_RIGHT + 12;
       const targetGoalY = GOAL_Y_TOP + (GOAL_Y_BOTTOM - GOAL_Y_TOP) * (0.2 + Math.random() * 0.6);
       const angle = Math.atan2(targetGoalY - ball.y, targetGoalX - ball.x);
 
-      const power = input.sprint ? 6.8 : 5.4;
+      const power = player.dashTimer > 0 ? 7.2 : 5.8;
       ball.vx = Math.cos(angle) * power;
-      ball.vy = Math.sin(angle) * power * 0.6;
-      ball.vz = 3.2 + Math.random() * 2.0; // Angkat bola melambung di udara
+      ball.vy = Math.sin(angle) * power * 0.65;
+      ball.vz = 3.4 + Math.random() * 1.8;
 
       playRetroSound('shoot');
     }
@@ -485,22 +559,48 @@
 
   function executePass() {
     const dist = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
-    if (dist < 26) {
+    if (dist < 28) {
       player.state = 'kick';
       player.kickTimer = 0.2;
 
-      // Oper mendatar ke arah teman setim (teammate)
       const angle = Math.atan2(teammate.y - ball.y, teammate.x - ball.x);
-      const power = 4.2;
+      const power = 4.4;
       ball.vx = Math.cos(angle) * power;
       ball.vy = Math.sin(angle) * power;
-      ball.vz = 0.5;
+      ball.vz = 0.6;
 
       playRetroSound('kick');
     }
   }
 
-  // ── UPDATE LOGIKA GAME (60 FPS) ─────────────────────────────
+  function executeDash() {
+    if (player.dashTimer <= 0) {
+      player.dashTimer = 0.45; // Durasi dash kilat
+      playRetroSound('dash');
+    }
+  }
+
+  // ── KEYBOARD HANDLERS (OPSIONAL UNTUK PENGGUNA LAPTOP) ────────
+  function handleKeyDown(e) {
+    initAudio();
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') input.up = true;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') input.down = true;
+
+    if (e.code === 'Space' || e.code === 'KeyK') executeShoot();
+    if (e.code === 'KeyJ' || e.code === 'KeyX') executePass();
+    if (e.code === 'ShiftLeft' || e.code === 'KeyL') executeDash();
+  }
+
+  function handleKeyUp(e) {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') input.up = false;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') input.down = false;
+  }
+
+  // ── UPDATE FISIKA DAN LOGIKA PERTANDINGAN ─────────────────────
   function updateGame(dt) {
     // 1. Partikel Selebrasi Gol
     for (let i = goalParticles.length - 1; i >= 0; i--) {
@@ -512,41 +612,74 @@
       if (p.life <= 0) goalParticles.splice(i, 1);
     }
 
-    if (whistleFlash > 0) whistleFlash -= dt;
-
-    // Saat perayaan gol, bola dan pemain jeda sejenak
     if (goalCelebrationTimer > 0) {
       goalCelebrationTimer -= dt;
-      if (goalCelebrationTimer <= 0) {
-        resetKickoff();
-      }
+      if (goalCelebrationTimer <= 0) resetKickoff();
       return;
     }
 
-    // Hitung waktu pertandingan mundur
-    if (matchTime > 0) matchTime -= dt * 25; // 1 detik dunia nyata = ~25 detik pertandingan
+    if (matchTime > 0) matchTime -= dt * 25;
 
-    // 2. Pergerakan Pemain Anda (Dangerous Boys)
-    const currentSpeed = (input.sprint ? player.speed * 1.5 : player.speed);
-    player.vx = 0;
-    player.vy = 0;
+    // 2. Kecepatan dan Status Dash (Skill Sprint)
+    let currentSpeed = player.baseSpeed;
+    if (player.dashTimer > 0) {
+      player.dashTimer -= dt;
+      currentSpeed = player.baseSpeed * 1.8; // Kecepatan kilat saat dash
+    }
 
-    if (input.left) { player.vx = -currentSpeed; player.facing = -1; }
-    if (input.right) { player.vx = currentSpeed; player.facing = 1; }
-    if (input.up) { player.vy = -currentSpeed * 0.75; }
-    if (input.down) { player.vy = currentSpeed * 0.75; }
+    // 3. Sistem Gerak 360° Mengalir (MOBA Joystick / Direct Tap)
+    if (joystickVector.active) {
+      // Bergerak mengalir 360° mengikuti arah jempol secara langsung
+      player.vx = joystickVector.x * currentSpeed;
+      player.vy = joystickVector.y * currentSpeed * 0.8;
+      if (Math.abs(joystickVector.x) > 0.08) {
+        player.facing = joystickVector.x > 0 ? 1 : -1;
+      }
+    } else if (tapTarget.active) {
+      // Bergerak menuju titik tap di lapangan
+      const dx = tapTarget.x - (player.x + 8);
+      const dy = tapTarget.y - (player.y + 12);
+      const dist = Math.hypot(dx, dy);
+      if (dist > 6) {
+        player.vx = (dx / dist) * currentSpeed;
+        player.vy = (dy / dist) * currentSpeed * 0.8;
+        player.facing = dx > 0 ? 1 : -1;
+      } else {
+        player.vx = 0;
+        player.vy = 0;
+        tapTarget.active = false;
+      }
+    } else {
+      // Fallback Keyboard
+      let kx = 0;
+      let ky = 0;
+      if (input.left) kx -= 1;
+      if (input.right) kx += 1;
+      if (input.up) ky -= 1;
+      if (input.down) ky += 1;
+
+      if (kx !== 0 || ky !== 0) {
+        const len = Math.hypot(kx, ky);
+        player.vx = (kx / len) * currentSpeed;
+        player.vy = (ky / len) * currentSpeed * 0.8;
+        if (kx !== 0) player.facing = kx > 0 ? 1 : -1;
+      } else {
+        player.vx = 0;
+        player.vy = 0;
+      }
+    }
 
     player.x += player.vx * 60 * dt;
     player.y += player.vy * 60 * dt;
 
-    // Batasi pemain di dalam garis lapangan
+    // Batas area lapangan
     player.x = Math.max(PITCH_LEFT + 8, Math.min(PITCH_RIGHT - 24, player.x));
     player.y = Math.max(PITCH_TOP + 4, Math.min(PITCH_BOTTOM - 24, player.y));
 
     // Animasi langkah kaki
     if (Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1) {
       player.animTimer += dt;
-      if (player.animTimer > (input.sprint ? 0.08 : 0.13)) {
+      if (player.animTimer > (player.dashTimer > 0 ? 0.07 : 0.12)) {
         player.frame = (player.frame + 1) % 2;
         player.animTimer = 0;
       }
@@ -557,13 +690,13 @@
       if (player.kickTimer <= 0) player.state = 'idle';
     }
 
-    // 3. AI Teman Setim (Membantu membuka ruang)
-    const targetTeammateX = player.x + 80;
+    // 4. AI Teman Setim (Dangerous Boys No. 7)
+    const targetTeammateX = player.x + 84;
     const dxTm = targetTeammateX - teammate.x;
     teammate.x += Math.sign(dxTm) * Math.min(Math.abs(dxTm), teammate.speed * 60 * dt);
     teammate.x = Math.max(PITCH_LEFT + 20, Math.min(PITCH_RIGHT - 60, teammate.x));
 
-    // 4. AI Bek Lawan (Menghadang Pemain & Mengejar Bola)
+    // 5. AI Bek Lawan (Banjar Rival FC No. 4)
     const targetDefX = ball.x > V_WIDTH / 2 ? ball.x + 14 : V_WIDTH / 2 + 60;
     const targetDefY = ball.y;
     const angleDef = Math.atan2(targetDefY - opponent.y, targetDefX - opponent.x);
@@ -574,23 +707,21 @@
     opponent.y += opponent.vy * 60 * dt;
     opponent.facing = opponent.vx > 0 ? 1 : -1;
 
-    // Sapuan/Tackle Lawan jika dekat bola
+    // Tackle Bek Lawan jika dekat bola
     const distOppBall = Math.hypot(opponent.x + 8 - ball.x, opponent.y + 12 - ball.y);
     if (distOppBall < 18) {
-      // Lawan membuang bola ke arah kiri (menyerang ke gawang Dangerous Boys)
-      ball.vx = -(3.8 + Math.random() * 1.8);
-      ball.vy = (Math.random() - 0.5) * 3.2;
+      ball.vx = -(4.0 + Math.random() * 1.6);
+      ball.vy = (Math.random() - 0.5) * 3.0;
       ball.vz = 2.0;
       playRetroSound('kick');
     }
 
-    // 5. AI Kiper Lawan (Gawang Kanan)
+    // 6. AI Kiper Lawan (Gawang Kanan)
     goalieRight.y += goalieRight.vy * 60 * dt;
     if (goalieRight.y >= goalieRight.maxY || goalieRight.y <= goalieRight.minY) {
       goalieRight.vy = -goalieRight.vy;
     }
 
-    // Kiper menepis tembakan ke gawang kanan
     if (
       ball.x >= PITCH_RIGHT - 24 &&
       ball.x <= PITCH_RIGHT + 6 &&
@@ -598,13 +729,13 @@
       ball.y <= GOAL_Y_BOTTOM + 10 &&
       Math.abs(ball.y - (goalieRight.y + 12)) < 30
     ) {
-      ball.vx = -(3.6 + Math.random() * 1.5);
+      ball.vx = -(3.8 + Math.random() * 1.5);
       ball.vy = (Math.random() - 0.5) * 4;
       ball.vz = 2.2;
       playRetroSound('save');
     }
 
-    // 6. AI Kiper Dangerous Boys (Gawang Kiri)
+    // 7. AI Kiper Dangerous Boys (Gawang Kiri)
     goalieLeft.y += goalieLeft.vy * 60 * dt;
     if (goalieLeft.y >= goalieLeft.maxY || goalieLeft.y <= goalieLeft.minY) {
       goalieLeft.vy = -goalieLeft.vy;
@@ -615,42 +746,39 @@
       ball.x >= PITCH_LEFT - 6 &&
       Math.abs(ball.y - (goalieLeft.y + 12)) < 30
     ) {
-      ball.vx = 3.6 + Math.random() * 1.5;
+      ball.vx = 3.8 + Math.random() * 1.5;
       ball.vy = (Math.random() - 0.5) * 4;
       ball.vz = 2.0;
       playRetroSound('save');
     }
 
-    // 7. Fisika Gerak Bola (2.5D dengan Ketinggian Z)
+    // 8. Fisika Bola
     ball.x += ball.vx * 60 * dt;
     ball.y += ball.vy * 60 * dt;
 
-    // Ketinggian Z dan Gravitasi
     if (ball.z > 0 || ball.vz !== 0) {
       ball.vz -= 9.8 * dt * 1.2;
       ball.z += ball.vz * 60 * dt;
-
       if (ball.z <= 0) {
         ball.z = 0;
-        ball.vz = -ball.vz * 0.55; // Pantulan lantai
+        ball.vz = -ball.vz * 0.55;
         if (Math.abs(ball.vz) < 0.4) ball.vz = 0;
       }
     }
 
-    // Gesekan rumput mendatar
     ball.vx *= 0.985;
     ball.vy *= 0.985;
     ball.rotation += ball.vx * dt * 8;
 
-    // Dribble otomatis saat pemain berlari mendorong bola
+    // Dribble bola otomatis saat pemain berjalan mendorong bola
     const distP1Ball = Math.hypot(player.x + 8 - ball.x, player.y + 12 - ball.y);
     if (distP1Ball < 18 && ball.z < 6 && player.kickTimer <= 0) {
       ball.vx = player.facing * (Math.abs(player.vx) + 0.8);
       ball.vy = player.vy * 0.9;
     }
 
-    // ── 8. DETEKSI GOL REALISTIS ────────────────────────────────
-    // Gawang Kanan (GOL DANGEROUS BOYS!)
+    // 9. Deteksi Gol 2 Gawang
+    // Gawang Kanan (GOL DANGEROUS BOYS)
     if (
       ball.x >= PITCH_RIGHT &&
       ball.x <= PITCH_RIGHT + GOAL_DEPTH &&
@@ -674,7 +802,7 @@
       return;
     }
 
-    // Pantulan tiang gawang atas & bawah
+    // Pantulan tiang atas dan bawah
     if (ball.y < PITCH_TOP + 4) {
       ball.y = PITCH_TOP + 4;
       ball.vy = Math.abs(ball.vy) * 0.8;
@@ -683,7 +811,6 @@
       ball.vy = -Math.abs(ball.vy) * 0.8;
     }
 
-    // Batas tepi kiri dan kanan selain jaring gawang
     if ((ball.y < GOAL_Y_TOP || ball.y > GOAL_Y_BOTTOM)) {
       if (ball.x <= PITCH_LEFT) {
         ball.x = PITCH_LEFT;
@@ -698,15 +825,11 @@
   function triggerGoal(team) {
     goalCelebrationTimer = 2.8;
     goalScorer = team;
-    whistleFlash = 0.5;
     playRetroSound('whistle');
     setTimeout(() => playRetroSound('goal'), 200);
 
-    if (team === 'player') {
-      player.state = 'celebrate';
-    }
+    if (team === 'player') player.state = 'celebrate';
 
-    // Buat 45 partikel konfeti berhamburan
     goalParticles = [];
     const goalX = team === 'player' ? PITCH_RIGHT + 12 : PITCH_LEFT - 12;
     for (let i = 0; i < 45; i++) {
@@ -732,64 +855,60 @@
     opponent.y = 200;
   }
 
-  // ── RENDER STADION & PERTANDINGAN SEPAK BOLA ─────────────────
+  // ── RENDER STADION SEPAK BOLA ────────────────────────────────
   function render() {
-    // 1. Gambar Tribun Penonton & Lampu Sorot Stadion
     renderStadiumGrandstand();
-
-    // 2. Gambar Rumput Lapangan Bergaris Hijau 2-Tone
     renderGrassPitch();
-
-    // 3. Gambar Garis Lapangan & Lingkaran Tengah
     renderPitchMarkings();
-
-    // 4. Gambar 2 Gawang Lengkap dengan Jaring Perspektif 3D
     renderGoalNets();
 
-    // 5. Gambar Kiper
+    // Kiper
     drawPixelMatrix(ctx, SPRITE_GK, goalieLeft.x, goalieLeft.y, 2, false);
     drawPixelMatrix(ctx, SPRITE_GK, goalieRight.x, goalieRight.y, 2, true);
 
-    // 6. Gambar Pemain AI Lawan
+    // Pemain Lawan
     const oppSprite = opponent.frame === 0 ? SPRITE_OPP_RUN_1 : SPRITE_OPP_RUN_2;
     drawPixelMatrix(ctx, oppSprite, opponent.x, opponent.y, 2, opponent.facing === -1);
 
-    // 7. Gambar Teman Setim Dangerous Boys
+    // Teman Setim
     const tmSprite = teammate.frame === 0 ? SPRITE_P1_RUN_1 : SPRITE_P1_RUN_2;
     drawPixelMatrix(ctx, tmSprite, teammate.x, teammate.y, 2, false);
 
-    // 8. Gambar Pemain Anda (Dangerous Boys BJR-18)
+    // Pemain Anda (BJR-18 Dangerous Boys)
     let pSprite = player.frame === 0 ? SPRITE_P1_RUN_1 : SPRITE_P1_RUN_2;
     if (player.state === 'kick') pSprite = SPRITE_P1_KICK;
     if (player.state === 'celebrate') pSprite = SPRITE_P1_CELEBRATE;
     drawPixelMatrix(ctx, pSprite, player.x, player.y, 2, player.facing === -1);
 
-    // Indikator nama "BJR-18 / KAMU" di atas kepala pemain
+    // Indikator Hero MOBA di atas kepala
     ctx.fillStyle = '#facc15';
     ctx.font = 'bold 8px monospace';
     ctx.fillText('▼ BJR·10', player.x - 2, player.y - 6);
 
-    // 9. Gambar Bayangan dan Bola Sepak (dengan Ketinggian Z)
+    // Efek lingkaran aura hero di kaki pemain (Khas MOBA)
+    ctx.strokeStyle = player.dashTimer > 0 ? '#38bdf8' : 'rgba(250, 204, 21, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(player.x + 8, player.y + 24, 12, 5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
     renderSoccerBall();
 
-    // 10. Partikel Konfeti
+    // Partikel Gol
     goalParticles.forEach(p => {
       ctx.fillStyle = p.color;
       ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 3, 3);
     });
 
-    // 11. Banner Perayaan Gol Layar Penuh
     if (goalCelebrationTimer > 0) {
       renderGoalCelebrationBanner();
     }
   }
 
   function renderStadiumGrandstand() {
-    // Langit & Atap Stadion
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, V_WIDTH, PITCH_TOP);
 
-    // Tribun Penonton Retro Pixel
     const crowdColors = ['#dc2626', '#2563eb', '#f59e0b', '#ffffff', '#10b981', '#7c3aed'];
     for (let row = 0; row < 3; row++) {
       const y = 8 + row * 16;
@@ -799,13 +918,12 @@
       for (let x = 8; x < V_WIDTH - 8; x += 12) {
         const color = crowdColors[(x + row * 7) % crowdColors.length];
         ctx.fillStyle = color;
-        ctx.fillRect(x, y + 2, 8, 8); // Badan penonton
+        ctx.fillRect(x, y + 2, 8, 8);
         ctx.fillStyle = '#fdcca0';
-        ctx.fillRect(x + 2, y, 4, 3);  // Kepala penonton
+        ctx.fillRect(x + 2, y, 4, 3);
       }
     }
 
-    // Papan Iklan Tepi Lapangan
     ctx.fillStyle = '#090d16';
     ctx.fillRect(0, PITCH_TOP - 14, V_WIDTH, 14);
     ctx.strokeStyle = '#c27827';
@@ -817,7 +935,6 @@
   }
 
   function renderGrassPitch() {
-    // Rumput bergaris vertikal 2-tone hijau cerah khas stadion asli
     const stripeWidth = 40;
     for (let x = 0; x < V_WIDTH; x += stripeWidth) {
       const isEven = Math.floor(x / stripeWidth) % 2 === 0;
@@ -830,10 +947,8 @@
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
 
-    // Garis Batas Lapangan
     ctx.strokeRect(PITCH_LEFT, PITCH_TOP, PITCH_RIGHT - PITCH_LEFT, PITCH_BOTTOM - PITCH_TOP);
 
-    // Garis Tengah & Lingkaran Tengah
     const midX = V_WIDTH / 2;
     ctx.beginPath();
     ctx.moveTo(midX, PITCH_TOP);
@@ -844,31 +959,24 @@
     ctx.arc(midX, (PITCH_TOP + PITCH_BOTTOM) / 2, 48, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Titik Tengah Kickoff
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(midX, (PITCH_TOP + PITCH_BOTTOM) / 2, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Kotak Penalti Kiri
     ctx.strokeRect(PITCH_LEFT, 115, 84, 170);
     ctx.strokeRect(PITCH_LEFT, 145, 32, 110);
 
-    // Kotak Penalti Kanan
     ctx.strokeRect(PITCH_RIGHT - 84, 115, 84, 170);
     ctx.strokeRect(PITCH_RIGHT - 32, 145, 32, 110);
   }
 
   function renderGoalNets() {
-    // 1. Gawang Kiri (Dangerous Boys Goal)
     draw3DGoal(PITCH_LEFT - GOAL_DEPTH, GOAL_Y_TOP, GOAL_DEPTH, GOAL_Y_BOTTOM - GOAL_Y_TOP, 'left');
-
-    // 2. Gawang Kanan (Lawan / Sasaran Tembak Anda)
     draw3DGoal(PITCH_RIGHT, GOAL_Y_TOP, GOAL_DEPTH, GOAL_Y_BOTTOM - GOAL_Y_TOP, 'right');
   }
 
   function draw3DGoal(x, y, w, h, side) {
-    // Jaring gawang berpola
     ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
     ctx.fillRect(x, y, w, h);
 
@@ -888,12 +996,10 @@
       ctx.stroke();
     }
 
-    // Tiang gawang putih tebal
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 3;
     ctx.strokeRect(x, y, w, h);
 
-    // Label Gawang
     ctx.fillStyle = side === 'left' ? '#facc15' : '#ef4444';
     ctx.font = 'bold 7px monospace';
     const tagText = side === 'left' ? 'BJR-18' : 'RIVAL';
@@ -901,14 +1007,12 @@
   }
 
   function renderSoccerBall() {
-    // Bayangan bola di tanah (posisi Y sebenarnya tanpa Z)
     const shadowSize = Math.max(3, 7 - ball.z * 0.12);
     ctx.fillStyle = 'rgba(10, 15, 10, 0.35)';
     ctx.beginPath();
     ctx.ellipse(ball.x, ball.y, shadowSize, shadowSize * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bola di udara (berada pada Y - Z)
     ctx.save();
     ctx.translate(ball.x, ball.y - ball.z);
     ctx.rotate(ball.rotation);
@@ -965,53 +1069,6 @@
       const min = Math.floor(totalSec / 60).toString().padStart(2, '0');
       const sec = (totalSec % 60).toString().padStart(2, '0');
       timerEl.textContent = `${min}:${sec}`;
-    }
-  }
-
-  // ── KONTROLER ARCADE BULAT (TOMBOL FISIK GAME CONSOLE) ──────
-  function setupArcadeControls() {
-    // 1. D-Pad Bulat Kiri (Arah)
-    const bindBtn = (id, onStart, onEnd) => {
-      const btn = document.getElementById(id);
-      if (!btn) return;
-      const start = (e) => { e.preventDefault(); initAudio(); onStart(); };
-      const end = (e) => { e.preventDefault(); onEnd(); };
-      btn.addEventListener('mousedown', start);
-      btn.addEventListener('mouseup', end);
-      btn.addEventListener('mouseleave', end);
-      btn.addEventListener('touchstart', start, { passive: false });
-      btn.addEventListener('touchend', end, { passive: false });
-    };
-
-    bindBtn('arcLeft',  () => input.left = true,  () => input.left = false);
-    bindBtn('arcRight', () => input.right = true, () => input.right = false);
-    bindBtn('arcUp',    () => input.up = true,    () => input.up = false);
-    bindBtn('arcDown',  () => input.down = true,  () => input.down = false);
-
-    // 2. Tombol Aksi Bulat Kanan
-    bindBtn('arcShoot', () => { input.shoot = true; executeShoot(); }, () => input.shoot = false);
-    bindBtn('arcPass',  () => { input.pass = true; executePass(); },   () => input.pass = false);
-    bindBtn('arcSprint',() => input.sprint = true,                     () => input.sprint = false);
-
-    // 3. Tombol Reset Skor & Audio
-    const btnSound = document.getElementById('arcSound');
-    if (btnSound) {
-      btnSound.addEventListener('click', () => {
-        initAudio();
-        soundEnabled = !soundEnabled;
-        btnSound.textContent = soundEnabled ? '🔊' : '🔇';
-      });
-    }
-
-    const btnReset = document.getElementById('arcReset');
-    if (btnReset) {
-      btnReset.addEventListener('click', () => {
-        scorePlayer = 0;
-        scoreCPU = 0;
-        matchTime = 90 * 60;
-        resetKickoff();
-        playRetroSound('whistle');
-      });
     }
   }
 
